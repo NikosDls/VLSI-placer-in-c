@@ -10,6 +10,7 @@ int main(){
 	char filesFolder[64];		// folder name
 	char filesNames[5][64];		// seperated all file names 
 	nodes nodes;	// nodes
+	nets nets;		// nets
 	chip chip;		// chip
 	
 	// read the auxiliary file (.aux)
@@ -31,9 +32,13 @@ int main(){
 	
 	// read the nodes file (.nodes)
 	readNodes(filesNames[0], &nodes);
+
+	// read the nets file (.nets)
+	readNets(filesNames[1], &nets, &nodes);
 	
 	// read the chip file (.scl)
 	readChip(filesNames[4], &chip);
+	
 	// read ...
 	
 return 0;	// successful return of main

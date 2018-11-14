@@ -154,7 +154,7 @@ void readNodes(char *fileName, nodes *nodes){
 		
 		// convert string to integer and set the number of nodes
 		nodes->numberOfNodes = atoi(token);
-		printf("%d\n", nodes->numberOfNodes);
+		//printf("%d\n", nodes->numberOfNodes);
 	}
 	
 	// creating the array of nodes
@@ -188,10 +188,10 @@ void readNodes(char *fileName, nodes *nodes){
 		
 		// convert string to number and set number of terminals
 		nodes->numberOfTerminals = atoi(token);
-		printf("%d\n", nodes->numberOfTerminals);
+		//printf("%d\n", nodes->numberOfTerminals);
 	}
 	
-	// read all nodes coordinates line by line
+	// read all nodes sizes line by line
 	for(i = 0; i < nodes->numberOfNodes; i++){
 		// read the next whole line as string
 		fgets(temp, 128, fp);
@@ -260,7 +260,7 @@ void readNodes(char *fileName, nodes *nodes){
 return;	// successful return of readNodes
 }
 
-// reading chip file (.)
+// reading chip file (.scl)
 void readChip(char *fileName, chip *chip){
 	int i, j;		// counters for the loops
 	int loops;		// number of the loops to read lines without any usefull information or the empty lines
@@ -313,7 +313,7 @@ void readChip(char *fileName, chip *chip){
 		
 		// convert string to number and set number of chip rows
 		chip->numberOfRows = atoi(token);
-		printf("%d\n", chip->numberOfRows);
+		//printf("%d\n", chip->numberOfRows);
 	}
 	
 	// creating the array of chip rows
@@ -330,7 +330,6 @@ void readChip(char *fileName, chip *chip){
 		// read all informations for the row i
 		// each row have 7 lines of informations
 		for(j = 0; j < 7; j++){
-			
 			// read the next whole line as string
 			fgets(temp, 128, fp);
 			
@@ -363,42 +362,42 @@ void readChip(char *fileName, chip *chip){
 					case 0:	// coordinate
 						// convert string to number and set coordinate of the row i
 						chip->array[i].coordinate = atoi(token);
-						printf("%d\n", chip->array[i].coordinate);
+						//printf("%d\n", chip->array[i].coordinate);
 						
 						break;
 					
 					case 1:	// height
 						// convert string to number and set height of the row i
 						chip->array[i].height = atoi(token);
-						printf("%d\n", chip->array[i].height);
+						//printf("%d\n", chip->array[i].height);
 						
 						break;
 					
 					case 2:	// sitewidth
 						// convert string to number and set sitewidth of the row i
 						chip->array[i].sitewidth = atoi(token);
-						printf("%d\n", chip->array[i].sitewidth);
+						//printf("%d\n", chip->array[i].sitewidth);
 					
 						break;
 					
 					case 3:	// sitespacing
 						// convert string to number and set sitespacing of the row i
 						chip->array[i].sitespacing = atoi(token);
-						printf("%d\n", chip->array[i].sitespacing);
+						//printf("%d\n", chip->array[i].sitespacing);
 					
 						break;
 					
 					case 4:	// siteorient
 						// set siteorient of the row i
 						strcpy(chip->array[i].siteorient, token);
-						printf("%s\n", chip->array[i].siteorient);
+						//printf("%s\n", chip->array[i].siteorient);
 					
 						break;
 					
 					case 5:	// sitesymmetry
 						// set sitesymmetry of the row i
 						strcpy(chip->array[i].sitesymmetry, token);
-						printf("%s\n", chip->array[i].sitesymmetry);
+						//printf("%s\n", chip->array[i].sitesymmetry);
 					
 						break;
 					
@@ -407,12 +406,12 @@ void readChip(char *fileName, chip *chip){
 						if(counter == 2){
 							// convert string to number and set sub-row origin of the row i
 							chip->array[i].subrowOrigin = atoi(token);
-							printf("%d\n", chip->array[i].subrowOrigin);
+							//printf("%d\n", chip->array[i].subrowOrigin);
 								
 						}else{	// counter here is five and we are in the last element of the last line
 							// convert string to number and set numsites of the row i
 							chip->array[i].width = atoi(token);
-							printf("%d\n", chip->array[i].width);
+							//printf("%d\n", chip->array[i].width);
 						}
 						
 						break;
@@ -427,3 +426,124 @@ void readChip(char *fileName, chip *chip){
 	
 return;	// successful return of readChip
 }
+
+// reading nets file (.nets)
+void readNets(char *fileName, nets *nets, nodes *nodes){
+	int i, j;		// counters for the loops
+	
+	FILE *fp;		// file pointer
+	char temp[128];	// temporary string to read the file, line by line
+	
+	int counter = 0;	// counter for the tokenization 
+	char *token;		// variable to keep the tokens
+	
+	int id;	// temporary node id
+	
+	// open nets file
+	fp = fopen(fileName, "r");
+	
+	// read first lines with comments and infos
+	for(i = 0; i < UL; i++){
+		fgets(temp, 128, fp);
+		//printf("%s", temp);
+	}
+	
+	// read the number of nets as string
+	fgets(temp, 128, fp);
+	//printf("%s", temp);
+	
+	// setting counter to 0
+	counter = 0;
+	
+	// we seperate the number of nets line
+	// get the first token (NumNets) 
+	token = strtok(temp, space);
+
+	// walk through other tokens
+	// the second token will be the (:), so we have to pass it
+	while(token != NULL && counter < 2){
+		//printf("%s\n", token);
+		// taking the next token
+		token = strtok(NULL, space);
+
+		// increase the counter by 1
+		counter++;
+		
+		// if counter is 1, that means the token is : and we simply continue to the next loop
+		if(counter == 1){
+			continue;
+		}
+		
+		// convert string to number and set number of nets
+		nets->numberOfNets = atoi(token);
+		//printf("%d\n", nets->numberOfNets);
+	}
+	
+	// creating the array of nets
+	nets->array = malloc(nets->numberOfNets * sizeof(net));
+	
+	// read and pass the next line (NumPins)
+	fgets(temp, 128, fp);
+	
+	for(i = 0; i < nets->numberOfNets; i++){
+		// read the next whole line as string
+		fgets(temp, 128, fp);
+		
+		// resetting counter to 0
+		counter = 0;
+		
+		// we seperate the net degree line
+		// get the first token (NetDegree) 
+		token = strtok(temp, space);
+	
+		// walk through other tokens
+		// the second token will be the (:), so we have to pass it
+		while(token != NULL && counter < 2){
+			//printf("%s\n", token);
+			// taking the next token
+			token = strtok(NULL, space);
+	
+			// increase the counter by 1
+			counter++;
+			
+			// if counter is 1, that means the token is : and we simply continue to the next loop
+			if(counter == 1){
+				continue;
+			}
+
+			// convert string to number and set net i degree
+			nets->array[i].netDegree = atoi(token);
+			//printf("%d\n", nets->array[i].netDegree);
+		}
+			
+		// creating the array of ids for the net
+		nets->array[i].netNodes = malloc(nets->array[i].netDegree * sizeof(int));
+		
+		for(j = 0; j < nets->array[i].netDegree; j++){
+			// read the next whole line as string
+			fgets(temp, 128, fp);
+			//printf("%s\n", temp);
+			
+			// resetting the counter to 0
+			counter = 0;
+			
+			// we seperate each line
+			// get the first token (name of the node in the net) 
+			token = strtok(temp, space);
+			
+			// get the node j id of the net i (at this point we dont know if its terminal or not)
+			id = atoi(&token[1]);
+			
+			// check if node its terminal or not
+			// then we add to the net i the id (index position in nodes array) of the node j
+			if(strcpy(nodes->array[id].name, token)){	// node isnt terminal
+				nets->array[i].netNodes[j] = id;
+			}else if(strcpy(nodes->array[(nodes->numberOfNodes - nodes->numberOfTerminals - 1) + id].name, token)){	// node is terminal
+				nets->array[i].netNodes[j] = (nodes->numberOfNodes - nodes->numberOfTerminals - 1) + id;
+			}
+		}
+	}
+	
+return;	// successful return of readNets
+}
+

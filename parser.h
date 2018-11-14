@@ -72,5 +72,6 @@ typedef struct chip{
 void readAux(char [64], char [5][64]);
 void readNodes(char *, nodes *);
 void readChip(char *, chip *);
+void readNets(char *, nets *, nodes *);
 
 #endif // PARSER_H
