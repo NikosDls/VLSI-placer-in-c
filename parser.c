@@ -156,7 +156,7 @@ void readNodes(char *fileName, nodes *nodes){
 		nodes->numberOfNodes = atoi(token);
 		//printf("%d\n", nodes->numberOfNodes);
 	}
-	
+
 	// creating the array of nodes
 	nodes->array = malloc(nodes->numberOfNodes * sizeof(node));
 	
@@ -275,7 +275,7 @@ void readChip(char *fileName, chip *chip){
 	// open chip file
 	fp = fopen(fileName, "r");
 	
-	// ibm circuits have one more extra line before the number of rows
+	// ibm circuits have one more extra line in this file before the number of rows
 	// so we check that
 	loops = (strstr(fileName, "ibm") != NULL) ? (UL + 1) : UL;
 	
@@ -547,3 +547,77 @@ void readNets(char *fileName, nets *nets, nodes *nodes){
 return;	// successful return of readNets
 }
 
+// reading coordinates file (.pl)
+void readPads(char *fileName, nodes *nodes){
+	int i; 			// counter for the loops
+
+	FILE *fp;		// file pointer
+	char temp[128];	// temporary string to read the file, line by line
+	
+	int counter = 0;	// counter for the tokenization 
+	char *token;		// variable to keep the tokens
+
+	// open coordinates file
+	fp = fopen(fileName, "r");
+	
+	// ibm circuits have one more extra line in this file before the pad coordinates
+	// and also ibm circuits have in the start all pads coordinates, instead after the nodes (like all other circuits) 
+	// so we check that
+	if((strstr(fileName, "ibm") != NULL)){
+		// read first lines with comments and infos
+		for(i = 0; i < UL + 1; i++){
+			fgets(temp, 128, fp);
+			//printf("%s", temp);
+		}
+	}else{	// other circuits
+		// read first lines with comments and infos
+		for(i = 0; i < UL + 1; i++){
+			fgets(temp, 128, fp);
+			//printf("%s", temp);
+		}
+		
+		// skip all nodes until we will read pad coordinate
+		for(i = 0; i < nodes->numberOfNodes - nodes->numberOfTerminals - 1; i++){
+			fgets(temp, 128, fp);
+			//printf("%s", temp);
+		}
+	}
+	
+	// read all pads coordinates line by line
+	for(i = nodes->numberOfNodes - nodes->numberOfTerminals; i < nodes->numberOfNodes; i++){
+		// read the next whole line as string
+		fgets(temp, 128, fp);
+		//printf("%s", temp);
+	
+		// resetting counter to 0
+		counter = 0;
+		
+		// we seperate each line
+		// get the first token (name of the pad) 
+		token = strtok(temp, space);
+	
+		// walk through other tokens
+		// the second token will be the x coordinate and third the y coordinate
+		while(token != NULL && counter < 2){
+			//printf("%s\n", token);
+			// taking the next token
+			token = strtok(NULL, space);
+	
+			// increase the counter by 1
+			counter++;
+			
+			if(counter == 1){	// x coordinate
+				nodes->array[i].x = atoi(token);
+				printf("x %d\t", nodes->array[i].x);
+			}else if(counter == 2){	// y coordinate
+				nodes->array[i].y = atoi(token);
+				printf("y %d\n", nodes->array[i].y);
+			}
+		}
+	}
+
+	// reading is done and we close the file
+	fclose(fp);
+	
+return;	// successful return of readPads
+}

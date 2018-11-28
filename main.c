@@ -34,12 +34,13 @@ int main(){
 	readNodes(filesNames[0], &nodes);
 
 	// read the nets file (.nets)
-	readNets(filesNames[1], &nets, &nodes);
+	//readNets(filesNames[1], &nets, &nodes);
 	
 	// read the chip file (.scl)
-	readChip(filesNames[4], &chip);
+	//readChip(filesNames[4], &chip);
 	
-	// read ...
+	// read the pads (pins) coordinates file (.pl)
+	readPads(filesNames[3], &nodes);
 	
 return 0;	// successful return of main
 }

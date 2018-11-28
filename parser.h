@@ -20,8 +20,8 @@ typedef struct node{
 	char *name;	// node name
 	
 	// node coordinates in the chip
-	float x;
-	float y;
+	int x;
+	int y;
 	
 	// node length. Horizontally (x) and vertically (y) 
 	int xLength;
@@ -73,5 +73,6 @@ void readAux(char [64], char [5][64]);
 void readNodes(char *, nodes *);
 void readChip(char *, chip *);
 void readNets(char *, nets *, nodes *);
+void readPads(char *, nodes *);
 
 #endif // PARSER_H
