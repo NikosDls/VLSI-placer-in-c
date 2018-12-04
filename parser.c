@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "parser.h"
+#include "placer.h"
 
 const char space[2] = " ";	// delimit token
 const char tab[3] = "\t";	// delimit token
@@ -26,7 +26,7 @@ void readAux(char filesFolder[64], char filesNames[5][64]){
 	do{
 		// if flag is 1 that means user gave wrong input file name 
 		if(flag == 1){
-			printf("FILE DOESNT EXISTS ----> %s\n\n", auxFile);
+			printf("FILE DOESNT EXIST ----> %s\n\n", auxFile);
 		}
 		
 		// folder must be in the same directory with the executable 
@@ -100,7 +100,7 @@ void readAux(char filesFolder[64], char filesNames[5][64]){
 		if(access(filesNames[i], F_OK) != -1){
 	    	printf("FILE EXISTS ----> %s\n", filesNames[i]);
 		}else{
-			printf("FILE DOESNT EXISTS ----> %s\n", filesNames[i]);
+			printf("FILE DOESNT EXIST ----> %s\n", filesNames[i]);
 		}	
 	}
 	
@@ -608,10 +608,10 @@ void readPads(char *fileName, nodes *nodes){
 			
 			if(counter == 1){	// x coordinate
 				nodes->array[i].x = atoi(token);
-				printf("x %d\t", nodes->array[i].x);
+				//printf("x %d\t", nodes->array[i].x);
 			}else if(counter == 2){	// y coordinate
 				nodes->array[i].y = atoi(token);
-				printf("y %d\n", nodes->array[i].y);
+				//printf("y %d\n", nodes->array[i].y);
 			}
 		}
 	}

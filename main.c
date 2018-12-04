@@ -3,8 +3,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "parser.h"
+#include "placer.h"
 #include "parser.c"
+#include "random_gp.c"
 
 int main(){
 	char filesFolder[64];		// folder name
@@ -29,18 +30,25 @@ int main(){
 	}else{
 		UL = SUPERBLUE;
 	}
-	
+
+// parse
 	// read the nodes file (.nodes)
 	readNodes(filesNames[0], &nodes);
 
 	// read the nets file (.nets)
-	//readNets(filesNames[1], &nets, &nodes);
+	readNets(filesNames[1], &nets, &nodes);
 	
 	// read the chip file (.scl)
-	//readChip(filesNames[4], &chip);
+	readChip(filesNames[4], &chip);
 	
 	// read the pads (pins) coordinates file (.pl)
 	readPads(filesNames[3], &nodes);
-	
+
+// global placement
+	// random global placement
+	randomGP(&nodes, chip);
+
+// legalization
+
 return 0;	// successful return of main
 }
