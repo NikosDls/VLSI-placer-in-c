@@ -6,6 +6,7 @@
 #include "placer.h"
 #include "parser.c"
 #include "random_gp.c"
+#include "tetris_lg.c"
 
 int main(){
 	char filesFolder[64];		// folder name
@@ -49,6 +50,7 @@ int main(){
 	randomGP(&nodes, chip);
 
 // legalization
-
+	// tetris algorithm
+	tetrisLG(&nodes, chip);
 return 0;	// successful return of main
 }

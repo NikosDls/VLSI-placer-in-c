@@ -12,8 +12,11 @@
 // "useless lines"
 short int UL;
 
-extern const char space[2];	// delimit token
-extern const char tab[3];	// delimit token
+// delimit token
+extern const char space[2];	
+
+// chip slot
+typedef enum {available, notAvailable} slot;
 
 // a simple node
 typedef struct node{
@@ -60,6 +63,7 @@ typedef struct row{
 	char sitesymmetry[3];	// row site symmetry
 	int subrowOrigin;		// sub-row origin
 	int width;				// row width (numsites)
+	slot **array;			// row slots (size: height x width)
 }row;
 
 // chip
@@ -79,6 +83,6 @@ void readPads(char *, nodes *);
 void randomGP(nodes *, chip);
 
 // legalization function prototypes
-
+float tetrisLG(nodes *, chip);
 
 #endif // PLACER_H

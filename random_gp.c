@@ -14,12 +14,17 @@ void randomGP(nodes *nodes, chip chip){
 	// seed for the "random" numbers
 	srand((unsigned int) time(0));
 	
+	/*
 	// calculate chip height
 	height = 0;
 	for(i = 0; i < chip.numberOfRows; i++){
 		height += chip.array[i].height;	
 	}
 	//printf("%d\n", height);
+	*/
+	// calculate chip height
+	height = chip.array[chip.numberOfRows - 1].coordinate + chip.array[chip.numberOfRows - 1].height;
+	//printf("%d", chip.array[chip.numberOfRows - 1].coordinate + chip.array[chip.numberOfRows - 1].height);
 	
 	// generate random cooridantes for all non terminal nodes (terminal nodes PADS, have fixed position in the chip)
 	for(i = 0; i < nodes->numberOfNodes - nodes->numberOfTerminals; i++){
@@ -35,11 +40,12 @@ void randomGP(nodes *nodes, chip chip){
 				// we calculate the x coordinate, based on row j width
 				xRandom = ((long long) (chip.array[j].width - nodes->array[i].xLength) * rand()) / ((long long)RAND_MAX);
 				//printf("ROW j: %d\n", j);
+				
 				// we done so we break the loop
 				break;
 			}
 		}
-		printf("%d\t%d\n", xRandom, yRandom);
+		//printf("%d\t%d\n", xRandom, yRandom);
 				
 		// set the coordinates for the node
 		nodes->array[i].x = xRandom;
