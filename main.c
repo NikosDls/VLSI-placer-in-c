@@ -15,6 +15,13 @@ int main(){
 	nets nets;		// nets
 	chip chip;		// chip
 	
+	float seconds;	// algorithm runtime
+	
+	FILE *fp;		// file pointer
+	char fname[64];	// output file name
+	
+	int i;			// counter for the loop
+	
 	// read the auxiliary file (.aux)
 	readAux(filesFolder, filesNames);
 	
@@ -51,6 +58,37 @@ int main(){
 
 // legalization
 	// tetris algorithm
-	tetrisLG(&nodes, chip);
+	seconds = tetrisLG(&nodes, chip);
+	
+	
+// create output file
+// read the user input
+	printf("\nGive the file name to print the results: ");
+	gets(fname);
+	
+	// clear the buffer
+	fflush(stdin);
+	
+	// open the output file
+	fp = fopen(fname, "w");
+	
+	// write first lines with comments and infos
+	fprintf(fp, "# ISPD VLSI PLACEMENT BENCHMARK: %s\n", filesFolder);
+	fprintf(fp, "# PLACMENT WITH RANDOM GP AND TETRIS LG ALGORITHM\n");
+	fprintf(fp, "# TETRIS RUNTIME           : %lf seconds\n", seconds);
+	//fprintf(fp, "# TOTAL WIRE LENGTH (HPWL) : %lld\n\n", totalWireLength);
+	
+	// write results to file
+	for(i = 0; i < nodes.numberOfNodes; i++){
+		if(nodes.array[i].terminal == 0){	// node isnt terminal	
+			fprintf(fp, "%7s %10d %10d\n", nodes.array[i].name, nodes.array[i].x, nodes.array[i].y);
+		}else{	// node is terminal
+			fprintf(fp, "%7s %10d %10d / FIXED\n", nodes.array[i].name, nodes.array[i].x, nodes.array[i].y);
+		}
+	}
+	
+	// all done and we close the file
+	fclose(fp);	
+	
 return 0;	// successful return of main
 }

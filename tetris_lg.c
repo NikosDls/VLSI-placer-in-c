@@ -94,15 +94,20 @@ float tetrisLG(nodes *nodes, chip chip){
 		// initialize best cost to infinite (max long long)
 		best = MAXDISTANCE;
 		
+
+		
 		// find the distance of the cell displacement for each row and we hold the best one
-		for(j = 0; j < chip.numberOfRows; j++){
+		for(j = 0; j < chip.numberOfRows; j++){		
+			// initialize the possible coordinates
+			xCoordinate = -1;
+			yCoordinate	= -1;
+			
 			// check if node i fits in row j
 			// "walk" through the slots column by column 
 			for(w = 0; w < chip.array[j].width; w++){
 				for(k = 0; k < chip.array[j].height; k++){
-					// initialize the possible coordinates
-					xCoordinate = -1;
-					yCoordinate	= -1;
+
+					found = 1;	// initialize found to 1 which means position not found yet
 					
 					// possible position found
 					// check the boundaries too
@@ -110,32 +115,30 @@ float tetrisLG(nodes *nodes, chip chip){
 						&& ((k + nodes->array[sortedNodes.array[i]].yLength) <= chip.array[j].height)
 						&& ((w + nodes->array[sortedNodes.array[i]].xLength) <= chip.array[j].width)){
 						
-						found = 0;	// initialize found to 0 which means position found
-						
 						// check if node i, fits in the possible position with w,k coordinates
 						for(z = 0; z < nodes->array[sortedNodes.array[i]].yLength; z++){
 							for(x = 0; x < nodes->array[sortedNodes.array[i]].xLength; x++){
 								// check if all slots are available which node needs to fit
 								if(chip.array[j].array[k + z][w + x] == notAvailable){
 									// slot isnt available and break the loop
-									found = 1;
+									found = 2;
 									break;
 								}								
 							}
 							// break and the second loop
-							if(found == 1){
+							if(found == 2){
 								break;
 							}
 						}
 						
 						// node fits in the position with w,k coordinates
-						if(found == 0){
+						if(found == 1){
+							found = 0;
 							// save the w,k coordinates for row j
 							xCoordinate = w;
 							yCoordinate	= k + chip.array[j].coordinate;
 							//printf("xCoordinate %d\tyCoordinate %d\n", xCoordinate, yCoordinate);
-						}
-						// else node cant fit in row j
+						}// node cant fit in row j
 					}
 					
 					// we already found position for the node in row j so we dont have to continue the lookup
@@ -164,6 +167,7 @@ float tetrisLG(nodes *nodes, chip chip){
 					bestRow = j;
 					bestX = xCoordinate;
 					bestY = yCoordinate - chip.array[j].coordinate;
+					//printf("bestRow %d\tbestX %d\tbestY %d\n", bestRow, bestX, bestY);
 				}
 			}
 		}
@@ -172,9 +176,9 @@ float tetrisLG(nodes *nodes, chip chip){
 		//printf("xCoordinate %d\tyCoordinate %d\n", bestX, bestY);
 
 		// move cell to best row
-		nodes->array[sortedNodes.array[i]].x = xCoordinate;
-		nodes->array[sortedNodes.array[i]].y = yCoordinate;
-		
+		nodes->array[sortedNodes.array[i]].x = bestX;
+		nodes->array[sortedNodes.array[i]].y = bestY + chip.array[bestRow].coordinate;
+
 		// mark cell as placed
 		nodes->array[sortedNodes.array[i]].placed = 1;
 		
@@ -184,6 +188,8 @@ float tetrisLG(nodes *nodes, chip chip){
 				chip.array[bestRow].array[bestY + k][bestX + w] = notAvailable;
 			}
 		}
+		
+		
 	}
 	
 	// end of clocks counting
@@ -192,7 +198,13 @@ float tetrisLG(nodes *nodes, chip chip){
 	// calculate the time in seconds
 	float seconds = (float)(end - start) / CLOCKS_PER_SEC;
 	
-	//printf("\ntime: %lf seconds", seconds);
+	printf("\ntime: %lf seconds", seconds);
+	
+	/*
+	for(i = 0; i < nodes->numberOfNodes; i++){
+		printf("%7s %10d %10d\n", nodes->array[i].name, nodes->array[i].x, nodes->array[i].y);
+	}
+	*/
 	
 	// return the execution time in seconds of tetris algorithm
 	return seconds;	// successful return of tetrisLG 
