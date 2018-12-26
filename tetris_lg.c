@@ -93,9 +93,7 @@ float tetrisLG(nodes *nodes, chip chip){
 	for(i = 0; i < sortedNodes.numberOfNodes; i++){
 		// initialize best cost to infinite (max long long)
 		best = MAXDISTANCE;
-		
-
-		
+	
 		// find the distance of the cell displacement for each row and we hold the best one
 		for(j = 0; j < chip.numberOfRows; j++){		
 			// initialize the possible coordinates
@@ -198,7 +196,7 @@ float tetrisLG(nodes *nodes, chip chip){
 	// calculate the time in seconds
 	float seconds = (float)(end - start) / CLOCKS_PER_SEC;
 	
-	printf("\ntime: %lf seconds", seconds);
+	//printf("\ntime: %lf seconds", seconds);
 	
 	/*
 	for(i = 0; i < nodes->numberOfNodes; i++){

@@ -22,13 +22,19 @@ typedef enum {available, notAvailable} slot;
 typedef struct node{
 	char *name;	// node name
 	
-	// node coordinates in the chip
+	// node coordinates in the chip (bottom-left)
 	int x;
 	int y;
+	
+	// node coordinates in the chip (center)
+	float xCenter;
+	float yCenter;
 	
 	// node length. Horizontally (x) and vertically (y) 
 	int xLength;
 	int yLength;
+	
+	int connectivity;	// the number of nodes which are connected with the node
 	
 	int placed;		// 1 if the node its placed on the chip otherwise 0 
 	int terminal;	// 1 if the node its terminal otherwise 0
@@ -45,6 +51,7 @@ typedef struct nodes{
 typedef struct net{
 	int netDegree;		// the number of the nodes in the net
 	int *netNodes;		// array with ids from the nodes in the net
+	char *netNodesAttributes;	// save all nodes attributes (Input, Output, B??)
 }net;
 
 // all nets

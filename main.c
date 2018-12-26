@@ -4,23 +4,32 @@
 #include <unistd.h>
 
 #include "placer.h"
+#include "NTUplace3.h"
+
 #include "parser.c"
 #include "random_gp.c"
 #include "tetris_lg.c"
+#include "NTUplace3.c"
 
 int main(){
+	// parse variables
 	char filesFolder[64];		// folder name
 	char filesNames[5][64];		// seperated all file names 
 	nodes nodes;	// nodes
 	nets nets;		// nets
 	chip chip;		// chip
+	// END OF parse variables
 	
-	float seconds;	// algorithm runtime
+	int i;			// counter for the loop
+	float seconds;	// to count algorithms runtime
 	
 	FILE *fp;		// file pointer
 	char fname[64];	// output file name
 	
-	int i;			// counter for the loop
+	// NTUplace3 global placer 
+	hypergraph H;	// hypergraph
+	connectivitySortedNodes sortedNodes;	// sorted nodes based on their connectivity
+	// END OF NTUplace3 global placer
 	
 	// read the auxiliary file (.aux)
 	readAux(filesFolder, filesNames);
@@ -52,6 +61,13 @@ int main(){
 	// read the pads (pins) coordinates file (.pl)
 	readPads(filesNames[3], &nodes);
 
+	// NTUplace3 global placement		
+	createH0(&H, nodes.numberOfNodes);	// mixed size circuit
+	sortedNodes = sortNodesByConnectivity(nodes);	// get the sorted nodes based on their connectivity
+	NTUplace3GP(&H, 6000);	// GP Algorithm
+	
+	
+/*
 // global placement
 	// random global placement
 	randomGP(&nodes, chip);
@@ -89,6 +105,6 @@ int main(){
 	
 	// all done and we close the file
 	fclose(fp);	
-	
+*/	
 return 0;	// successful return of main
 }
