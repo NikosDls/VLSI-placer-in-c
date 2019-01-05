@@ -3,9 +3,10 @@
 #include <time.h>
 #include <math.h>
 
-#include "placer.h"
+#include "parser.h"
+#include "random_gp.h"
 
-void randomGP(nodes *nodes, chip chip){
+float randomGP(nodes *nodes, chip chip){
 	int i, j;	// counters for the loops
 	int height;	// chip height
 	int row;	// viariable sum to find the specific row
@@ -25,6 +26,9 @@ void randomGP(nodes *nodes, chip chip){
 	// calculate chip height
 	height = chip.array[chip.numberOfRows - 1].coordinate + chip.array[chip.numberOfRows - 1].height;
 	//printf("%d", chip.array[chip.numberOfRows - 1].coordinate + chip.array[chip.numberOfRows - 1].height);
+	
+	// start counting the execution clocks of tetris algorithm
+	clock_t start = clock();
 	
 	// generate random cooridantes for all non terminal nodes (terminal nodes PADS, have fixed position in the chip)
 	for(i = 0; i < nodes->numberOfNodes - nodes->numberOfTerminals; i++){
@@ -52,5 +56,12 @@ void randomGP(nodes *nodes, chip chip){
 		nodes->array[i].y = yRandom;
 	}
 	
-	return;
+	// end of clocks counting
+	clock_t end = clock();
+	
+	// calculate the time in seconds
+	float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+	
+	// return the execution time in seconds of random gp algorithm
+	return seconds;	// successful return of randomGP 
 }

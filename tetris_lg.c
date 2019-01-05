@@ -3,16 +3,8 @@
 #include <math.h>
 #include <time.h>
 
-#include "placer.h"
-
-// max distance for the tetris algorithm
-#define MAXDISTANCE 9223372036854775807
-
-// sorted array with nodes (by x coordinate)
-typedef struct sortedNodes{
-	int numberOfNodes;	// total number of sorted nodes (without terminal pads)
-	int *array;			// this number indicates the id of the node
-}sortedNodes;
+#include "parser.h"
+#include "tetris_lg.h"
 
 sortedNodes sortNodes(nodes nodes){	// sort based on x coordinate
 	int i, j;	// counters for the loops
@@ -204,6 +196,6 @@ float tetrisLG(nodes *nodes, chip chip){
 	}
 	*/
 	
-	// return the execution time in seconds of tetris algorithm
+	// return the execution time in seconds of tetris lg algorithm
 	return seconds;	// successful return of tetrisLG 
 }

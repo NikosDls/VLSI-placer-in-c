@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "placer.h"
+#include "parser.h"
 
 const char space[2] = " ";	// delimit token
 const char tab[3] = "\t";	// delimit token
@@ -104,7 +104,7 @@ void readAux(char filesFolder[64], char filesNames[5][64]){
 		}	
 	}
 	
-return;	// successful return of readAux
+	return;	// successful return of readAux
 }
 
 // reading nodes file (.nodes)
@@ -259,7 +259,8 @@ void readNodes(char *fileName, nodes *nodes){
 		printf("%10s%10d%10d%15s\n", nodes->array[i].name, nodes->array[i].xLength, nodes->array[i].yLength, (nodes->array[i].terminal == 0) ? "NON_TERMINAL" : "TERMINAL");	
 	}
 	*/
-return;	// successful return of readNodes
+	
+	return;	// successful return of readNodes
 }
 
 // reading chip file (.scl)
@@ -425,8 +426,7 @@ void readChip(char *fileName, chip *chip){
 		fgets(temp, 128, fp);
 	}
 	
-	
-return;	// successful return of readChip
+	return;	// successful return of readChip
 }
 
 // reading nets file (.nets)
@@ -574,12 +574,12 @@ void readNets(char *fileName, nets *nets, nodes *nodes){
 			}else{
 				nodes->array[nets->array[i].netNodes[j]].connectivity += nets->array[i].netDegree - 1;
 			}
-			//printf("%s %c %d\n", nodes->array[nets->array[i].netNodes[j]].name ,nets->array[i].netNodesAttributes[j], nodes->array[nets->array[i].netNodes[j]].connectivity);
+			//printf("%s %c %d\n", nodes->array[nets->array[i].netNodes[j]].name, nets->array[i].netNodesAttributes[j], nodes->array[nets->array[i].netNodes[j]].connectivity);
 		}
 		//printf("\n");getch();
 	}
 	
-return;	// successful return of readNets
+	return;	// successful return of readNets
 }
 
 // reading coordinates file (.pl)
@@ -654,5 +654,5 @@ void readPads(char *fileName, nodes *nodes){
 	// reading is done and we close the file
 	fclose(fp);
 	
-return;	// successful return of readPads
+	return;	// successful return of readPads
 }

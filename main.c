@@ -3,15 +3,27 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "placer.h"
+// header files
+#include "parser.h"
+#include "random_gp.h"
+#include "tetris_lg.h"
+#include "hpwl.h"
 #include "NTUplace3.h"
+#include "writeResults.h"
 
+// executable files (.c) can be excluded if
+// we compile the programm like gcc main.c (all .c files) -o parser
 #include "parser.c"
 #include "random_gp.c"
 #include "tetris_lg.c"
+#include "hpwl.c"
+
 #include "NTUplace3.c"
+#include "writeResults.c"
 
 int main(){
+	short int choice;	// user choice about placement algorithm
+	
 	// parse variables
 	char filesFolder[64];		// folder name
 	char filesNames[5][64];		// seperated all file names 
@@ -21,10 +33,8 @@ int main(){
 	// END OF parse variables
 	
 	int i;			// counter for the loop
-	float seconds;	// to count algorithms runtime
-	
-	FILE *fp;		// file pointer
-	char fname[64];	// output file name
+	float GPseconds, LGseconds;	// to count gp and lg algorithm runtime
+	float hpwl;		// half perimeter wirelength 
 	
 	// NTUplace3 global placer 
 	hypergraph H;	// hypergraph
@@ -60,51 +70,49 @@ int main(){
 	
 	// read the pads (pins) coordinates file (.pl)
 	readPads(filesNames[3], &nodes);
+// end of parse
 
-	// NTUplace3 global placement		
-	createH0(&H, nodes.numberOfNodes);	// mixed size circuit
-	sortedNodes = sortNodesByConnectivity(nodes);	// get the sorted nodes based on their connectivity
-	NTUplace3GP(&H, 6000);	// GP Algorithm
+	// print the menu
+	printf("\n1. Random global placement and tetris legalization"
+		   "\n2. Quadratic global placement and tetris legalization"
+	   	   "\n3. NTUplace3 placement\n\n");
 	
+	// read the users choice
+	do{
+		printf("Choice: ");
+		scanf("%d", &choice);
+	}while(choice < 1 || choice > 3);
 	
-/*
-// global placement
-	// random global placement
-	randomGP(&nodes, chip);
-
-// legalization
-	// tetris algorithm
-	seconds = tetrisLG(&nodes, chip);
-	
-	
-// create output file
-// read the user input
-	printf("\nGive the file name to print the results: ");
-	gets(fname);
-	
-	// clear the buffer
-	fflush(stdin);
-	
-	// open the output file
-	fp = fopen(fname, "w");
-	
-	// write first lines with comments and infos
-	fprintf(fp, "# ISPD VLSI PLACEMENT BENCHMARK: %s\n", filesFolder);
-	fprintf(fp, "# PLACMENT WITH RANDOM GP AND TETRIS LG ALGORITHM\n");
-	fprintf(fp, "# TETRIS RUNTIME           : %lf seconds\n", seconds);
-	//fprintf(fp, "# TOTAL WIRE LENGTH (HPWL) : %lld\n\n", totalWireLength);
-	
-	// write results to file
-	for(i = 0; i < nodes.numberOfNodes; i++){
-		if(nodes.array[i].terminal == 0){	// node isnt terminal	
-			fprintf(fp, "%7s %10d %10d\n", nodes.array[i].name, nodes.array[i].x, nodes.array[i].y);
-		}else{	// node is terminal
-			fprintf(fp, "%7s %10d %10d / FIXED\n", nodes.array[i].name, nodes.array[i].x, nodes.array[i].y);
-		}
+	// do what the user wants
+	switch(choice){
+		case 1:	// random GP and tetris LG
+			// random global placement
+			GPseconds = randomGP(&nodes, chip);
+			
+			// tetris legalization
+			LGseconds = tetrisLG(&nodes, chip);
+			
+			// compute the wirelegth
+			hpwl = HPWL(nodes, nets);
+			
+			// write the results to file
+			writeResults(nodes, choice, filesFolder, GPseconds, LGseconds, hpwl);
+			
+			break;
+		
+		case 2:	// QP and tetris LG
+			
+			break;
+			
+		case 3:	// NTUplace3
+			
+			// global placement		
+			createH0(&H, nodes.numberOfNodes);	// mixed size circuit
+			sortedNodes = sortNodesByConnectivity(nodes);	// get the sorted nodes based on their connectivity
+			NTUplace3GP(&H, 6000);	// GP Algorithm
+			
+			break;
 	}
-	
-	// all done and we close the file
-	fclose(fp);	
-*/	
-return 0;	// successful return of main
+
+	return 0;	// successful return of main
 }

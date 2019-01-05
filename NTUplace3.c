@@ -3,8 +3,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "placer.h"
+#include "parser.h"
 #include "NTUplace3.h"
+#include "quadraticPlacer.h"
+
+#include "quadraticPlacer.c"
 
 void createH0(hypergraph *H, int numberOfNodes){
 	// create the first level of hypergraph
@@ -20,7 +23,7 @@ void createH0(hypergraph *H, int numberOfNodes){
 	// set the number of levels to one
 	H->numberOfLevels = 1;
 	
-	return;
+	return;	// successful return of createH0
 }
 
 void firstChoiceClustering(hypergraph *H, int level){
@@ -50,7 +53,8 @@ void firstChoiceClustering(hypergraph *H, int level){
 	
 	//printf("Hlevel   %d\tblock number %d\trange %d-%d\nHlevel-1 %d\tblock number %d\trange %d-%d\n\n", level, H->array[level].blockNumber, H->array[level].range[0],H->array[level].range[1], level-1, H->array[level-1].blockNumber, H->array[level-1].range[0],H->array[level-1].range[1]);
 	//getch();
-	return;
+	
+	return;	// successful return of firstChoiceClustering
 }
 
 connectivitySortedNodes sortNodesByConnectivity(nodes nodes){	// sort based on x coordinate
@@ -87,6 +91,7 @@ connectivitySortedNodes sortNodesByConnectivity(nodes nodes){	// sort based on x
 		printf("%d %s %d\n", i, nodes.array[sortedNodes.array[i]].name, nodes.array[sortedNodes.array[i]].connectivity);
 	}
 	*/
+	
 	// return the sorted nodes
 	return sortedNodes;	// successful return of sortNodesByConnectivity
 }
@@ -111,5 +116,6 @@ void NTUplace3GP(hypergraph *H, int nmax){
 	/*
 	solveQP(&H, level);
 	*/
-	return;
+	
+	return;	// successful return of NTUplace3GP
 }

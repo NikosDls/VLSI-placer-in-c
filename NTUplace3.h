@@ -1,7 +1,7 @@
-#ifndef NTUplace3
-#define NTUplace3
+#ifndef NTUplace3_H
+#define NTUplace3_H
 
-#include "placer.h"
+#include "parser.h"
 
 // hypergraph level 
 typedef struct level{
@@ -24,17 +24,17 @@ typedef struct bin{
 	float Mb;	// maximum allowable area of movable blocks in bin
 }bin;
 
-// sorted array with nodes (by connectivity)
-typedef struct connectivitySortedNodes{
-	int numberOfNodes;	// total number of sorted nodes
-	int *array;			// this number indicates the id of the node
-}connectivitySortedNodes;
-
 // all bin grids
 typedef struct binGrids{
 	int numberOfBins;	// total number of bins
 	bin *array;			// array with all bins
 }binGrids;
+
+// sorted array with nodes (by connectivity)
+typedef struct connectivitySortedNodes{
+	int numberOfNodes;	// total number of sorted nodes
+	int *array;			// this number indicates the id of the node
+}connectivitySortedNodes;
 
 // NTUplace3 global placer function prototypes
 void createH0(hypergraph *, int);
@@ -45,4 +45,4 @@ void NTUplace3GP(hypergraph *, int);
 // NTUplace3 legalization placer
 
 
-#endif // NTUplace3
+#endif // NTUplace3_H
