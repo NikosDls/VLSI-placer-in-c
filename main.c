@@ -12,7 +12,7 @@
 #include "writeResults.h"
 
 // executable files (.c) can be excluded if
-// we compile the programm like gcc main.c (all .c files) -o parser
+// we compile the programm like gcc main.c (all .c files) -o placer
 #include "parser.c"
 #include "random_gp.c"
 #include "tetris_lg.c"
