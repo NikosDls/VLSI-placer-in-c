@@ -23,8 +23,8 @@ typedef struct node{
 	char *name;	// node name
 	
 	// node coordinates in the chip (bottom-left)
-	int x;
-	int y;
+	float x;
+	float y;
 	
 	// node coordinates in the chip (center)
 	float xCenter;

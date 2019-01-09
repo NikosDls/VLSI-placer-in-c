@@ -209,6 +209,7 @@ void readNodes(char *fileName, nodes *nodes){
 		
 		// save the node name
 		strcpy(nodes->array[i].name, token);
+		nodes->array[i].name[strlen(token)] = '\0';
 		
 		// walk through other tokens
 		while(token != NULL && counter < 4){
@@ -523,7 +524,8 @@ void readNets(char *fileName, nets *nets, nodes *nodes){
 		nets->array[i].netNodes = malloc(nets->array[i].netDegree * sizeof(int));
 		
 		// creating the array of attributes for the net
-		nets->array[i].netNodesAttributes = malloc(nets->array[i].netDegree * sizeof(char));
+		nets->array[i].netNodesAttributes = malloc((nets->array[i].netDegree + 1) * sizeof(char));
+		nets->array[i].netNodesAttributes[nets->array[i].netDegree] = '\0';
 		
 		// initialize the two counters
 		counterI = counterO = 0;
@@ -642,11 +644,11 @@ void readPads(char *fileName, nodes *nodes){
 			counter++;
 			
 			if(counter == 1){	// x coordinate
-				nodes->array[i].x = atoi(token);
-				//printf("x %d\t", nodes->array[i].x);
+				nodes->array[i].x = atof(token);
+				//printf("x %f\t", nodes->array[i].x);
 			}else if(counter == 2){	// y coordinate
-				nodes->array[i].y = atoi(token);
-				//printf("y %d\n", nodes->array[i].y);
+				nodes->array[i].y = atof(token);
+				//printf("y %f\n", nodes->array[i].y);
 			}
 		}
 	}

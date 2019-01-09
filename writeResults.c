@@ -26,30 +26,30 @@ void writeResults(nodes nodes, int choice, char *filesFolder, float GPseconds, f
 			fprintf(fp, "# PLACMENT WITH RANDOM GP AND TETRIS LG ALGORITHM\n");
 			fprintf(fp, "# RANDOM GP RUNTIME       : %lf seconds\n", GPseconds);
 			fprintf(fp, "# TETRIS LG RUNTIME       : %lf seconds\n", LGseconds);
-			fprintf(fp, "# TOTAL WIRELENGTH (HPWL) : %lf\n\n", totalWireLength);
+			fprintf(fp, "# TOTAL WIRELENGTH (HPWL) : %.0lf\n\n", totalWireLength);
 			break;
 		
 		case 2:
 			fprintf(fp, "# PLACMENT WITH QUADRATIC GP AND TETRIS LG ALGORITHM\n");
 			fprintf(fp, "# QUADRATIC GP RUNTIME    : %lf seconds\n", GPseconds);
 			fprintf(fp, "# TETRIS LG RUNTIME       : %lf seconds\n", LGseconds);
-			fprintf(fp, "# TOTAL WIRELENGTH (HPWL) : %lf\n\n", totalWireLength);
+			fprintf(fp, "# TOTAL WIRELENGTH (HPWL) : %.0lf\n\n", totalWireLength);
 			break;
 			
 		case 3:
 			fprintf(fp, "# PLACMENT WITH NTUplace3 ALGORITHM\n");
 			fprintf(fp, "# NTUplace3 GP RUNTIME           : %lf seconds\n", GPseconds);
 			fprintf(fp, "# TETRIS LIKE LG RUNTIME         : %lf seconds\n", LGseconds);
-			fprintf(fp, "# TOTAL WIRELENGTH (log-sum-exp) : %lf\n\n", totalWireLength);
+			fprintf(fp, "# TOTAL WIRELENGTH (log-sum-exp) : %.0lf\n\n", totalWireLength);
 			break;
 	}
 	
 	// write results to file
 	for(i = 0; i < nodes.numberOfNodes; i++){
 		if(nodes.array[i].terminal == 0){	// node isnt terminal	
-			fprintf(fp, "%7s %10d %10d\n", nodes.array[i].name, nodes.array[i].x, nodes.array[i].y);
+			fprintf(fp, "%7s %10.0f %10.0f\n", nodes.array[i].name, nodes.array[i].x, nodes.array[i].y);
 		}else{	// node is terminal
-			fprintf(fp, "%7s %10d %10d / FIXED\n", nodes.array[i].name, nodes.array[i].x, nodes.array[i].y);
+			fprintf(fp, "%7s %10.0f %10.0f / FIXED\n", nodes.array[i].name, nodes.array[i].x, nodes.array[i].y);
 		}
 	}
 	
