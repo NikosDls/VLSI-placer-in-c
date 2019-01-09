@@ -1,0 +1,28 @@
+UCLA nets 1.0
+# Created     : Wed Oct  1 23:12:57 CDT 2003
+# User        : nataraj@saturn.ee.iastate.edu (Natarajan Viswanathan)
+# Platform    : SunOS 5.8 sparc SUNW,Sun-Fire-880
+
+NumNets : 7
+NumPins : 93573
+NetDegree : 2 
+    a0 B 
+    a1 B 
+NetDegree : 2 
+    a0 B 
+    a1 B
+NetDegree : 2 
+    a1 B 
+    p2 B
+NetDegree : 2 
+    a1 B 
+    p2 B
+NetDegree : 2 
+    a1 B 
+    p2 B
+NetDegree : 2 
+    a1 B 
+    p2 B    
+NetDegree : 2 
+    a0 B 
+    p1 B 
