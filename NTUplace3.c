@@ -4,7 +4,6 @@
 #include <unistd.h>
 
 #include "parser.h"
-#include "NTUplace3.h"
 #include "quadraticPlacer.h"
 
 #include "quadraticPlacer.c"
@@ -63,7 +62,7 @@ connectivitySortedNodes sortNodesByConnectivity(nodes nodes){	// sort based on x
 	connectivitySortedNodes sortedNodes;	// sorted nodes
 	
 	// set number of sorted nodes
-	sortedNodes.numberOfNodes = nodes.numberOfNodes;
+	sortedNodes.numberOfNodes = nodes.numberOfNodes - nodes.numberOfTerminals;
 	
 	// creating the sorted array
 	sortedNodes.array = malloc(sortedNodes.numberOfNodes * sizeof(int));
@@ -86,6 +85,7 @@ connectivitySortedNodes sortNodesByConnectivity(nodes nodes){	// sort based on x
 			}
 		}
 	}
+	
 	/*
 	for(i = 0; i < sortedNodes.numberOfNodes; i++){
 		printf("%d %s %d\n", i, nodes.array[sortedNodes.array[i]].name, nodes.array[sortedNodes.array[i]].connectivity);
@@ -96,8 +96,8 @@ connectivitySortedNodes sortNodesByConnectivity(nodes nodes){	// sort based on x
 	return sortedNodes;	// successful return of sortNodesByConnectivity
 }
 
-void NTUplace3GP(hypergraph *H, int nmax){
-	int i;	// counter for the loop
+void NTUplace3GP(nodes nodes, nets nets, connectivitySortedNodes sortedNodes, hypergraph *H, int nmax){
+	int i;			// counter for the loop
 	int level;		// counter for the hypergaph levels
 	
 	// initialize level to zero

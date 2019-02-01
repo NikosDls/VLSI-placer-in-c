@@ -4,7 +4,7 @@
 #include "writeResults.h"
 
 void writeResults(nodes nodes, int choice, char *filesFolder, float GPseconds, float LGseconds, float totalWireLength){
-	int i;	// counter for the loop
+	int i;			// counter for the loop
 	FILE *fp;		// file pointer
 	char fname[64];	// output file name	
 	
@@ -37,10 +37,10 @@ void writeResults(nodes nodes, int choice, char *filesFolder, float GPseconds, f
 			break;
 			
 		case 3:
-			fprintf(fp, "# PLACMENT WITH NTUplace3 ALGORITHM\n");
-			fprintf(fp, "# NTUplace3 GP RUNTIME           : %lf seconds\n", GPseconds);
-			fprintf(fp, "# TETRIS LIKE LG RUNTIME         : %lf seconds\n", LGseconds);
-			fprintf(fp, "# TOTAL WIRELENGTH (log-sum-exp) : %.0lf\n\n", totalWireLength);
+			fprintf(fp, "# PLACMENT WITH OUR ALGORITHM\n");
+			fprintf(fp, "# GP RUNTIME              : %lf seconds\n", GPseconds);
+			fprintf(fp, "# TETRIS LIKE LG RUNTIME  : %lf seconds\n", LGseconds);
+			fprintf(fp, "# TOTAL WIRELENGTH (HPWL) : %.0lf\n\n", totalWireLength);
 			break;
 	}
 	

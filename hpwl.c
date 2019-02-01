@@ -20,7 +20,6 @@ float HPWL(nodes nodes, nets nets){
 		for(j = 1; j < nets.array[i].netDegree; j++){
 			// check if we must change any point
 			// compare with j node of the i net
-			
 			if(nodes.array[nets.array[i].netNodes[j]].x < xLeft){
 				xLeft =  nodes.array[nets.array[i].netNodes[j]].x;
 			}

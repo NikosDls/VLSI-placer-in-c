@@ -40,9 +40,6 @@ typedef struct connectivitySortedNodes{
 void createH0(hypergraph *, int);
 void firstChoiceClustering(hypergraph *, int);
 connectivitySortedNodes sortNodesByConnectivity(nodes);
-void NTUplace3GP(hypergraph *, int);
-
-// NTUplace3 legalization placer
-
+void NTUplace3GP(nodes, nets, connectivitySortedNodes, hypergraph *, int);
 
 #endif // NTUplace3_H

@@ -38,6 +38,7 @@ typedef struct node{
 	
 	int placed;		// 1 if the node its placed on the chip otherwise 0 
 	int terminal;	// 1 if the node its terminal otherwise 0
+	int preplaced;	// 1 if the node its terminal and preplaced in the chip otherwise 0
 }node;
 
 // all nodes
@@ -70,13 +71,16 @@ typedef struct row{
 	char sitesymmetry[3];	// row site symmetry
 	int subrowOrigin;		// sub-row origin
 	int width;				// row width (numsites)
-	slot **array;			// row slots (size: height x width)
+	int standardArray;		// indicates that until this number, the row is unavailable
+	slot **mixedArray;		// row slots (size: height x width), if we have mix-sized circuit or preplaced blocks in the chip area
 }row;
 
 // chip
 typedef struct chip{
 	int numberOfRows;	// total number of rows
 	row *array;			// array with all chip rows
+	int standardCells;	// 1 if circuit have only standard-size nodes otherwise 0 (mix-size)
+	int pbInChip;		// 1 if there is preplaced nodes in the chip area otherwise 0
 }chip;
 
 // function prototypes

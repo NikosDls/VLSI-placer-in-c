@@ -229,16 +229,7 @@ void readNodes(char *fileName, nodes *nodes){
 				case 2:	// y length of the node
 					// convert string to integer and set the node y length
 					nodes->array[i].yLength = atoi(token);
-					
-					// mark node as non-terminal
-					nodes->array[i].terminal = 0;
 					break;
-		/*			
-				case 3:	// this node is terminal
-					// mark node as terminal
-					nodes->array[i].terminal = 1;
-					break;
-		*/
 			}
 
 			// check if node is terminal and set it
@@ -249,6 +240,9 @@ void readNodes(char *fileName, nodes *nodes){
 		}
 		// set node connectivity to zero
 		nodes->array[i].connectivity = 0;
+		
+		// set node as not preplaced in the chip
+		nodes->array[i].preplaced = 0;
 	}
 	
 	// reading is done and we close the file
@@ -274,7 +268,6 @@ void readChip(char *fileName, chip *chip){
 	
 	int counter = 0;	// counter for the tokenization 
 	char *token;		// variable to keep the tokens
-	
 	
 	// open chip file
 	fp = fopen(fileName, "r");
@@ -432,7 +425,7 @@ void readChip(char *fileName, chip *chip){
 
 // reading nets file (.nets)
 void readNets(char *fileName, nets *nets, nodes *nodes){
-	int i, j;		// counters for the loops
+	int i, j, w;	// counters for the loops
 	
 	FILE *fp;		// file pointer
 	char temp[128];	// temporary string to read the file, line by line
@@ -550,7 +543,15 @@ void readNets(char *fileName, nets *nets, nodes *nodes){
 				nets->array[i].netNodes[j] = (nodes->numberOfNodes - nodes->numberOfTerminals - 1) + id;
 			}
 			
-			// taking the next token (indicates if node in INPUT or OUTPOUT) 
+			// increase the connectivity of each node in the net
+			// since the net are fully connected, each node connect with all other nodes in the net
+			nodes->array[nets->array[i].netNodes[j]].connectivity += (nets->array[i].netDegree - 1);
+
+			//printf("%s %d\n", nodes->array[nets->array[i].netNodes[j]].name, nodes->array[nets->array[i].netNodes[j]].connectivity);
+			//getch();
+			
+			/*
+			// taking the next token (indicates if node in INPUT or OUTPUT) 
 			token = strtok(NULL, space);
 			
 			// increase number of inputs of outputs
@@ -565,8 +566,10 @@ void readNets(char *fileName, nets *nets, nodes *nodes){
 				counterI++;
 				counterO++;
 			}
+			*/
 		}
-		
+
+		/*
 		// now we find the connectivity for each node in net i
 		for(j = 0; j < nets->array[i].netDegree; j++){
 			if(nets->array[i].netNodesAttributes[j] == 'I'){
@@ -579,6 +582,7 @@ void readNets(char *fileName, nets *nets, nodes *nodes){
 			//printf("%s %c %d\n", nodes->array[nets->array[i].netNodes[j]].name, nets->array[i].netNodesAttributes[j], nodes->array[nets->array[i].netNodes[j]].connectivity);
 		}
 		//printf("\n");getch();
+		*/
 	}
 	
 	return;	// successful return of readNets
