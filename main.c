@@ -9,7 +9,7 @@
 #include "tetris_lg.h"
 #include "hpwl.h"
 
-#include "NTUplace3.h"
+#include "ourPlacer.h"
 #include "writeResults.h"
 
 // executable files (.c) can be excluded if
@@ -19,7 +19,7 @@
 #include "tetris_lg.c"
 #include "hpwl.c"
 
-#include "NTUplace3.c"
+#include "ourPlacer.c"
 #include "writeResults.c"
 
 int main(){
@@ -37,15 +37,13 @@ int main(){
 	
  	int choice;		// user choice about placement algorithm
 	
-	int i, j, w, k;		// counter for the loop
-	int markFrom, markUntil;	// variables to set where the preplaced nodes is in the chip as not available
+	int i, j, w, k;	// counters for the loops
+	int markFrom, markUntil;			// variables to set where the preplaced nodes is in the chip as not available
+	int unavailableArea = 0, total = 0;	// area of terminal nodes in the chip and total chip area
 	
 	// placer variables
 	float GPseconds, LGseconds;	// to count gp and lg algorithm runtime
 	float hpwl;		// half perimeter wirelength 
-	
-	hypergraph H;	// hypergraph
-	connectivitySortedNodes sortedNodes;	// sorted nodes based on their connectivity
 	// END OF placer variables
 	
 	// read the auxiliary file (.aux)
@@ -132,6 +130,9 @@ int main(){
 				
 			for(w = 0; w < chip.array[i].width; w++){
 					chip.array[i].mixedArray[j][w] = available;
+					
+					// increase the chip total area
+					total++;
 			}
 		}
 	}
@@ -168,13 +169,35 @@ int main(){
 				}
 			}
 		}
+
+		// calculate the available and unavailable area
+		for(i = 0; i < chip.numberOfRows; i++){
+			for(j = 0; j < chip.array[i].height; j++){
+				for(w = 0; w < chip.array[i].width; w++){	
+					if(chip.array[i].mixedArray[j][w] == notAvailable){
+						unavailableArea++;
+					}
+					
+				}
+			}
+		}
+	}		
+	
+	// print the chip informations
+	printf("\n\n----------------------------------------");
+	printf("\nCHIP TOTAL AREA         : %d", total);
+	printf("\nCHIP AVAILABLE AREA     : %d", total - unavailableArea);
+	printf("\nCHIP NOT AVAILABLE AREA : %d", unavailableArea);
+	if(unavailableArea != 0){
+		printf("\n\nSO THE %.2lf%% OF THE TOTAL CHIP AREA IS UNAVAILABLE", ((double) unavailableArea / total) * 100);
 	}
+	printf("\n----------------------------------------\n\n");
 // END OF set the chip area
 
 	// print the menu
 	printf("\n1. Random global placement and tetris legalization"
 		   "\n2. Quadratic global placement and tetris legalization"
-	   	   "\n3. NTUplace3 placement\n\n");
+	   	   "\n3. Our placement\n\n");
 
 	// read the users choice
 	do{
@@ -183,7 +206,6 @@ int main(){
 		scanf("%d", &choice);
 	}while(choice < 1 || choice > 3);
 
-	//printf("w %d h %d", chip.array[0].width, chip.numberOfRows);getch();
 	// do what the user wants
 	switch(choice){
 		case 1:	// random GP and tetris-like LG
@@ -211,17 +233,25 @@ int main(){
 			break;
 		
 		case 2:	// QP and tetris LG
-			solveQP(nodes, nets);	
+				// testing QP (for circuits with more than 15000 nodes, much memory required)
+			// quadratic global placement
+			GPseconds = solveQP(&nodes, nets);	
+			
+			// tetris-like legalization
+			LGseconds = tetrisLG(&nodes, chip);
 
-			//createAandB(nodes, nets);
+			// compute the wirelegth
+			hpwl = HPWL(nodes, nets);
+			
+			// write the results to file
+			writeResults(nodes, choice, filesFolder, GPseconds, LGseconds, hpwl);
+	
 			break;
 			
-		case 3:	// NTUplace3
+		case 3:	// our placer
+			// our global placement		
+			ourPlacerGP(nodes, nets, chip, 6000);
 			
-			// global placement		
-			createH0(&H, nodes.numberOfNodes);	// mixed size circuit
-			sortedNodes = sortNodesByConnectivity(nodes);	// get the sorted nodes based on their connectivity
-			//NTUplace3GP(&H, 6000);	// GP Algorithm
 			break;
 	}
 
