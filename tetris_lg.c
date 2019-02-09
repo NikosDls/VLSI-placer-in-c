@@ -114,7 +114,7 @@ float tetrisLG(nodes *nodes, chip chip){
 	
 	// start counting the execution clocks of tetris algorithm
 	clock_t start = clock();
-	if(nodes->array[0].connectivity==-1) chip.pbInChip = 1;
+
 	// check which tetris algorithm we will execute 
 	if(chip.standardCells == 1){	// normal tetris (standard-size nodes), without preplaced nodes
 		if(chip.pbInChip == 0){

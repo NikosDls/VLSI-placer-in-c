@@ -8,7 +8,7 @@
 
 #include "cg\cg.c"
 
-void solveQP(nodes nodes, nets nets){
+float solveQP(nodes *nodes, nets nets){
 	int i, j, w;		// counters for the loops
 	double *A;			// A array. to solve Ax = Bx, same for the By
 	double *Bx, *By;	// Bx and By arrays
@@ -16,7 +16,7 @@ void solveQP(nodes nodes, nets nets){
 	int n;
 	
 	// initialize the size of arrays
-	n = nodes.numberOfNodes - nodes.numberOfTerminals;
+	n = nodes->numberOfNodes - nodes->numberOfTerminals;
 	
 	// create the array a. map 2D array into 1D
 	A = malloc(n * n * sizeof(double *)); 
@@ -35,6 +35,9 @@ void solveQP(nodes nodes, nets nets){
 		A[i] = 0;
     }
     
+    // start counting the execution clocks of tetris algorithm
+	clock_t start = clock();
+    
     for(i = 0; i < nets.numberOfNets; i++){
 		for(j = 0; j < nets.array[i].netDegree - 1; j++){
 			//printf("%s - > ", nodes.array[nets.array[i].netNodes[j]].name);
@@ -43,8 +46,8 @@ void solveQP(nodes nodes, nets nets){
 				//printf("%s  ", nodes.array[nets.array[i].netNodes[w]].name);
 				// when sparse array is empty, we add the first connection and continue to the next loop
 				
-				if(nodes.array[nets.array[i].netNodes[j]].terminal == 1){	// if node j its terminal
-					if(nodes.array[nets.array[i].netNodes[w]].terminal == 1){	// if nodes j and w are terminals
+				if(nodes->array[nets.array[i].netNodes[j]].terminal == 1){	// if node j its terminal
+					if(nodes->array[nets.array[i].netNodes[w]].terminal == 1){	// if nodes j and w are terminals
 						// we just move to the next one
 						continue;
 					}
@@ -55,18 +58,18 @@ void solveQP(nodes nodes, nets nets){
 
 					// set to the Bx and By the x and y coordinates value of the pad
 					// to do later for the node i: Bx[i] = weight i * xi, correspondingly for the By
-					Bx[nets.array[i].netNodes[w]] = nodes.array[nets.array[i].netNodes[j]].x;
-					By[nets.array[i].netNodes[w]] = nodes.array[nets.array[i].netNodes[j]].y;
+					Bx[nets.array[i].netNodes[w]] = nodes->array[nets.array[i].netNodes[j]].x;
+					By[nets.array[i].netNodes[w]] = nodes->array[nets.array[i].netNodes[j]].y;
 					
 				}else{	// if node j isnt terminal
-					if(nodes.array[nets.array[i].netNodes[w]].terminal == 1){	// if node j isnt terminal and node w its terminal
+					if(nodes->array[nets.array[i].netNodes[w]].terminal == 1){	// if node j isnt terminal and node w its terminal
 						// increase the diagonal (j,j) element weight
 						A[(nets.array[i].netNodes[j] * n) + nets.array[i].netNodes[j]]++;
 
 						// set to the Bx and By the x and y coordinates value of the pad
 						// to do later for the node i: Bx[i] = weight i * xi, correspondingly for the By
-						Bx[nets.array[i].netNodes[j]] = nodes.array[nets.array[i].netNodes[w]].x;
-						By[nets.array[i].netNodes[j]] = nodes.array[nets.array[i].netNodes[w]].y;
+						Bx[nets.array[i].netNodes[j]] = nodes->array[nets.array[i].netNodes[w]].x;
+						By[nets.array[i].netNodes[j]] = nodes->array[nets.array[i].netNodes[w]].y;
 						
 					}else{	// if nodes j and w arent terminals
 						// node j connect with the node w also the w with j
@@ -142,21 +145,30 @@ printf("solve");
 	r8ge_cg(n, A, Bx, x);
 	
 	// compute optimal y
-	//r8ge_cg(n, A, By, y);
+	r8ge_cg(n, A, By, y);
 	
-    printf("\nx:\n");
+	// end of clocks counting
+	clock_t end = clock();
+	
+	// calculate the time in seconds
+	float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+	
+    //printf("\nx:\n");
     
-    // print x
+    // save x solutions
 	for(i = 0; i < n; i++){
-		printf("%lf\n", x[i]);
+		nodes->array[i].x = x[i];
+		//printf("%lf\n", x[i]);
     }
     
     //printf("\n\ny:\n");
     
-    // print y
+    // save y solutions
 	for(i = 0; i < n; i++){
-		//printf("%lf ", y[i]);
+		nodes->array[i].x = x[i];
+		//printf("%lf\n", y[i]);
     }
 	
-	return;
+	// return the execution time in seconds of quadratic gp algorithm
+	return seconds;	// successful return of solveQP 
 }

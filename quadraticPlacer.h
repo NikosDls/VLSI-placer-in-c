@@ -4,6 +4,6 @@
 #include "parser.h"
 
 // function prototypes
-void solveQP(nodes, nets);
+float solveQP(nodes *, nets);
 
 #endif // QP_H

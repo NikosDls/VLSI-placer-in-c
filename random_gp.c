@@ -24,9 +24,8 @@ float randomGP(nodes *nodes, chip chip){
 	
 	// generate random cooridantes for all non terminal nodes (terminal nodes PADS, have fixed position in the chip)
 	for(i = 0; i < nodes->numberOfNodes - nodes->numberOfTerminals; i++){
-
 		// generate the random x and y coordinate
-		xRandom = rand() % (chip.array[i].width - nodes->array[i].xLength);
+		xRandom = rand() % (chip.array[0].width - nodes->array[i].xLength);
 		yRandom = rand() % (height - nodes->array[i].yLength);
 
 		//printf("%d\t%d\n", xRandom, yRandom);
