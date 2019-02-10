@@ -115,8 +115,11 @@ void ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 	binGrids B;		// bins
 	connectivitySortedNodes sortedNodes;	// sorted nodes based on their connectivity
 	int grid_num;
+	double xCenter, yCenter;	// center of the chip
 	int xCounter, yCounter;	// counters to calculate Pb
-	
+	double dx, dy;			// center (from node) to center (from bin) distance, in x and y directions
+	double px, py, a, b;	// variables to calculate Db	
+		
 	// mixed size circuit
 	createH0(&H, nodes.numberOfNodes - nodes.numberOfTerminals);
 	
@@ -134,6 +137,17 @@ void ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 	
 	for(i = 0; i < H.numberOfLevels; i++){
 		printf("H%d\tNumber Of Blocks: %ld\t Blocks ID: %ld - %ld\n", i, H.array[i].blockNumber, H.array[i].range[0], H.array[i].range[1]);
+	}
+	
+	// find the center of the chip
+	xCenter = (double) chip.array[0].width / 2;
+	yCenter = (double) (chip.array[chip.numberOfRows - 1].coordinate + chip.array[chip.numberOfRows - 1].height) / 2;
+	//printf("center: %lf %lf\n", xCenter, yCenter);
+
+	// initialize nodes center positions
+	for(i = 0; i < nodes.numberOfNodes - nodes.numberOfTerminals; i++){
+		nodes.array[i].x = nodes.array[i].xCenter = xCenter;
+		nodes.array[i].y = nodes.array[i].yCenter = yCenter;
 	}
 	
 	for(i = level; i >= 0; i--){
@@ -168,9 +182,23 @@ void ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 			//printf("%lf ", B.yRange[j]);
 		}
 		
-		// initialize Db, Mb and Pb for each bin
+		// initialize the center, Db, Mb and Pb for each bin
 		for(j = 0; j < grid_num; j++){
 			for(w = 0; w < grid_num; w++){
+				if(w == (grid_num - 1)){
+					B.array[j][w].xCenter = (double) (B.xRange[w] + B.wb) / 2;
+				}else{
+					B.array[j][w].xCenter = (double) B.xRange[w + 1] / 2;
+				}
+				
+				if(j == (grid_num - 1)){
+					B.array[j][w].yCenter = (double) (B.yRange[j] + B.hb) / 2;
+				}else{
+					B.array[j][w].yCenter = (double) B.yRange[j + 1] / 2;
+				}
+				
+				//printf("%lf %lf\n", B.array[j][w].xCenter, B.array[j][w].yCenter);
+				
 				B.array[j][w].Db = 0;
 				B.array[j][w].Mb = 0;
 				B.array[j][w].Pb = 0;
@@ -218,7 +246,58 @@ void ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 		}
 		
 		// calculate Db for each bin
-		
+		for(j = 0; j < grid_num; j++){
+			for(w = 0; w < grid_num; w++){
+				for(k = 0; k < H.array[i].blockNumber; k++){
+					// calculate center to center distance in x direction
+					dx = fabs(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xCenter - B.array[j][w].xCenter);
+					
+					if((dx >= 0) && 
+					   (dx <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + B.wb))){
+						// calculate a
+						a = (double) 4 / ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 2 * B.wb) * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 4 * B.wb));
+						
+						// calculate px
+						px = 1 - a * pow(dx, 2);				
+					}else if((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + B.wb) <= dx) &&
+							   (dx <= (((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + 2 * B.wb)))){
+						// calculate b
+						b = (double) 2 / (B.wb * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 4 * B.wb));
+						
+						// calculate px
+						px = b * pow(dx - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) - (2 * B.wb), 2);		
+					}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + 2 * B.wb))) <= dx){
+						// calculate px
+						px  = 0;
+					}
+					
+					// calculate center to center distance in y direction
+					dy = fabs(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yCenter - B.array[j][w].yCenter);
+					
+					if((dy >= 0) && 
+					   (dy <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B.wb))){
+						// calculate a
+						a = (double) 4 / ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 2 * B.wb) * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 4 * B.wb));
+						
+						// calculate py
+						py = 1 - a * pow(dy, 2);				
+					}else if((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B.wb) <= dy) &&
+							   (dy <= (((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + 2 * B.wb)))){
+						// calculate b
+						b = (double) 2 / (B.wb * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 4 * B.wb));
+						
+						// calculate py
+						py = b * pow(dy - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) - (2 * B.wb), 2);		
+					}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + 2 * B.wb))) <= dy){
+						// calculate py
+						py  = 0;
+					}
+					
+					// calculate Db for the bin (j,w)
+					B.array[j][w].Db += px * py; 
+				}
+			}
+		}
 		
 		//printf("\n%d - %d", H.array[i].range[0], H.array[i].range[1]);
 		if(i != 0){	// if we are not in the last spread (level 0)
