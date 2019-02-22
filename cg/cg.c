@@ -1831,7 +1831,7 @@ double *r83t_res ( int m, int n, double a[], double x[], double b[] )
 }
 /******************************************************************************/
 
-void r8ge_cg ( int n, double a[], double b[], double x[] )
+void r8ge_cg ( int n, double a[], double b[], double x[], int tol )
 
 /******************************************************************************/
 /*
@@ -1924,9 +1924,9 @@ void r8ge_cg ( int n, double a[], double b[], double x[] )
 /*
   Do the N steps of the conjugate gradient method.
 */
-  for ( it = 1; it <= (n > 100 ? 100 : n); it++ )
+  for ( it = 1; it <= (n > tol ? tol : n); it++ )
   {
-  	printf("%d", it);
+  	printf("%d ", it);
 /*
   Compute the matrix*vector product AP=A*P.
 */

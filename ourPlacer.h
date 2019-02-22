@@ -23,6 +23,8 @@ typedef struct bin{
 	double Pb;	// area of preplaced nodes in bin
 	double Db;	// area of movable nodes in bin
 	double Mb;	// maximum allowable area of movable nodes in bin
+	double xCenter;	// x center coordinate of the bin
+	double yCenter;	// y center coordinate of the bin
 }bin;
 
 // all bin grids
@@ -45,7 +47,7 @@ typedef struct connectivitySortedNodes{
 void createH0(hypergraph *, int);
 void firstChoiceClustering(hypergraph *, int);
 connectivitySortedNodes sortNodesByConnectivity(nodes);
-void ourPlacerGP(nodes, nets, chip, int);
+float ourPlacerGP(nodes, nets, chip, int);
 void decluster(hypergraph *, int);
 
 #endif // ourPlacer_H

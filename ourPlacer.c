@@ -58,6 +58,46 @@ void firstChoiceClustering(hypergraph *H, int level){
 	return;	// successful return of firstChoiceClustering
 }
 
+void swap(int *a, int *b){
+	int temp = *a; 
+	*a = *b; 
+	*b = temp; 
+}
+
+int partition(nodes nodes, int arr[], int low, int high){
+	int pivot = nodes.array[arr[high]].connectivity;	// pivot 
+	int i = (low - 1);	// index of smaller element 
+	int j;
+	
+	for (j = low; j <= high - 1; j++){ 
+		// if current element is smaller than or equal to pivot
+		if(nodes.array[arr[j]].connectivity <= pivot){ 
+			i++;    // increment index of smaller element 
+			
+			// swap i and j element
+			swap(&arr[i], &arr[j]); 
+		}
+	}
+	
+	// swap i + 1 and high element
+	swap(&arr[i + 1], &arr[high]); 
+    
+	return (i + 1); 
+} 
+  
+void quickSort(nodes nodes, int arr[], int low, int high){ 
+	if(low < high){ 
+		// pi is partitioning index, arr[p] is now 
+		// at right place
+		int pi = partition(nodes, arr, low, high); 
+		
+		// separately sort elements before 
+		// partition and after partition 
+		quickSort(nodes, arr, low, pi - 1); 
+		quickSort(nodes, arr, pi + 1, high); 
+	}
+}
+
 connectivitySortedNodes sortNodesByConnectivity(nodes nodes){	// sort based on x coordinate
 	int i, j;	// counters for the loops
 	int temp;	// temporary variable for the swaps
@@ -73,9 +113,13 @@ connectivitySortedNodes sortNodesByConnectivity(nodes nodes){	// sort based on x
 	for(i = 0; i < sortedNodes.numberOfNodes; i++){
 		// nodes isnt sorted yet
 		// so the ids are in ascending order (0...n), as they are in the file
-		sortedNodes.array[i] = i;
+		sortedNodes.array[i] = i;		
 	}
 	
+	// sort the nodes based on their connectivity
+	quickSort(nodes, sortedNodes.array, 0, sortedNodes.numberOfNodes - 1);
+	
+	/*
 	// sort the nodes for the clustering process
 	for(i = sortedNodes.numberOfNodes - 1; i >= 0; i--){
 		for(j = 0; j < i; j++){
@@ -86,9 +130,8 @@ connectivitySortedNodes sortNodesByConnectivity(nodes nodes){	// sort based on x
             	sortedNodes.array[j] = temp;
 			}
 		}
-	}
+	}	
 	
-	/*
 	for(i = 0; i < sortedNodes.numberOfNodes; i++){
 		printf("%d %s %d\n", i, nodes.array[sortedNodes.array[i]].name, nodes.array[sortedNodes.array[i]].connectivity);
 	}
@@ -108,7 +151,7 @@ void decluster(hypergraph *H, int level){
 	return;	// successful return of decluster
 }
 
-void ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
+float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 	int i, j, w, k;	// counters for the loops
 	int level;		// counter for the hypergaph levels	
 	hypergraph H;	// hypergraph
@@ -116,9 +159,9 @@ void ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 	connectivitySortedNodes sortedNodes;	// sorted nodes based on their connectivity
 	int grid_num;
 	double xCenter, yCenter;	// center of the chip
-	int xCounter, yCounter;	// counters to calculate Pb
-	double dx, dy;			// center (from node) to center (from bin) distance, in x and y directions
-	double px, py, a, b;	// variables to calculate Db	
+	int xCounter, yCounter;		// counters to calculate Pb
+	double dx, dy;				// center (from node) to center (from bin) distance, in x and y directions
+	double px, py, a, b;		// variables to calculate Db	
 		
 	// mixed size circuit
 	createH0(&H, nodes.numberOfNodes - nodes.numberOfTerminals);
@@ -149,6 +192,27 @@ void ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 		nodes.array[i].x = nodes.array[i].xCenter = xCenter;
 		nodes.array[i].y = nodes.array[i].yCenter = yCenter;
 	}
+	
+	// mark the nodes of the last level, so we can solve qp for the initial solution
+	for(i = 0; i < H.array[level].blockNumber; i++){
+		// mark nodes from the last H level
+		nodes.array[sortedNodes.array[H.array[level].range[0] + i]].id = i;
+		//printf("%s\t%d\t%d\n", nodes.array[sortedNodes.array[H.array[level].range[0] + i]].name, nodes.array[sortedNodes.array[H.array[level].range[0] + i]].id, nodes.array[sortedNodes.array[H.array[level].range[0] + i]].connectivity);
+	}
+	
+	// solve qp
+	for(i = 0; i < H.array[level].blockNumber; i++){
+		// set the nodes id in H level
+		nodes.array[sortedNodes.array[H.array[level].range[0] + i]].id = i;
+	}
+
+	// call QP for the H level
+	// if we can solve QP, save the solutions 
+	// else we keep the center coordinates as initial solution
+	QP(&nodes, nets, H);
+	
+	// start counting the execution clocks of tetris algorithm
+	clock_t start = clock();
 	
 	for(i = level; i >= 0; i--){
 		//printf("%d\n", i);
@@ -181,7 +245,7 @@ void ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 			//printf("%lf ", B.xRange[j]);
 			//printf("%lf ", B.yRange[j]);
 		}
-		
+		/*
 		// initialize the center, Db, Mb and Pb for each bin
 		for(j = 0; j < grid_num; j++){
 			for(w = 0; w < grid_num; w++){
@@ -268,7 +332,7 @@ void ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 						px = b * pow(dx - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) - (2 * B.wb), 2);		
 					}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + 2 * B.wb))) <= dx){
 						// calculate px
-						px  = 0;
+						px = 0;
 					}
 					
 					// calculate center to center distance in y direction
@@ -290,7 +354,7 @@ void ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 						py = b * pow(dy - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) - (2 * B.wb), 2);		
 					}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + 2 * B.wb))) <= dy){
 						// calculate py
-						py  = 0;
+						py = 0;
 					}
 					
 					// calculate Db for the bin (j,w)
@@ -298,7 +362,7 @@ void ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 				}
 			}
 		}
-		
+		*/
 		//printf("\n%d - %d", H.array[i].range[0], H.array[i].range[1]);
 		if(i != 0){	// if we are not in the last spread (level 0)
 			// decluster nodes from current level (i) to the next level (i-1) 
@@ -315,10 +379,12 @@ void ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 		getch();
 	}
 	
+	// end of clocks counting
+	clock_t end = clock();
 	
-	/*
-	solveQP(&H, level);
-	*/
+	// calculate the time in seconds
+	float seconds = (float)(end - start) / CLOCKS_PER_SEC;
 	
-	return;	// successful return of NTUplace3GP
+	// return the execution time in seconds of our gp algorithm
+	return seconds;	// successful return of ourPlacerGP 
 }

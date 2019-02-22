@@ -250,7 +250,16 @@ int main(){
 			
 		case 3:	// our placer
 			// our global placement		
-			ourPlacerGP(nodes, nets, chip, 6000);
+			GPseconds = ourPlacerGP(nodes, nets, chip, 6000);
+			
+			// tetris-like legalization
+			//LGseconds = tetrisLG(&nodes, chip);
+			
+			// compute the wirelegth
+			//hpwl = HPWL(nodes, nets);
+			
+			// write the results to file
+			//writeResults(nodes, choice, filesFolder, GPseconds, LGseconds, hpwl);
 			
 			break;
 	}
