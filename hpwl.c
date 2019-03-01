@@ -9,6 +9,7 @@ float HPWL(nodes nodes, nets nets){
 	float totalWireLength = 0.0;	// total wirelength
 		
 	// calculate wire length for each net
+	// with Half Perimeter Wire Length model
 	for(i = 0; i < nets.numberOfNets; i++){
 		// initialize four points
 		// and taking the values of the first node of the i net

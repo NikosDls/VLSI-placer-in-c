@@ -8,7 +8,6 @@
 #include "random_gp.h"
 #include "tetris_lg.h"
 #include "hpwl.h"
-
 #include "ourPlacer.h"
 #include "writeResults.h"
 
@@ -18,7 +17,6 @@
 #include "random_gp.c"
 #include "tetris_lg.c"
 #include "hpwl.c"
-
 #include "ourPlacer.c"
 #include "writeResults.c"
 
@@ -213,18 +211,30 @@ int main(){
 			GPseconds = randomGP(&nodes, chip);
 		
 			//e = nodes;
-		
+
 			// tetris-like legalization
 			LGseconds = tetrisLG(&nodes, chip);
 
 			// compute the wirelegth
 			hpwl = HPWL(nodes, nets);
 			
+			/*
+			// test the difference between HPWL and log-sum-exp model
+			double testW = W(nodes, nets, chip);
+		
+			printf("HPWL: %f\n"
+				   "W:    %lf\n"
+				   "Difference: %lf", hpwl, testW, fabs(hpwl - testW));
+				   	   
+			return 1;
+			*/
+			
 			// write the results to file
 			writeResults(nodes, choice, filesFolder, GPseconds, LGseconds, hpwl);
 			
 			/*
-			e.array[0].connectivity= -1;						
+			// test the execution times of the different LG algorithms
+			e.array[0].connectivity = -1;						
 			// tetris-like legalization
 			LGseconds = tetrisLG(&e, chip);
 			// write the results to file
@@ -251,7 +261,7 @@ int main(){
 		case 3:	// our placer
 			// our global placement		
 			GPseconds = ourPlacerGP(nodes, nets, chip, 6000);
-			
+			printf("SEC: %f", GPseconds);
 			// tetris-like legalization
 			//LGseconds = tetrisLG(&nodes, chip);
 			

@@ -20,7 +20,7 @@ void createH0(hypergraph *H, int numberOfNodes){
 	// set the range of the first level
 	H->array[0].range[0] = 0;
 	H->array[0].range[1] = numberOfNodes - 1;
-	
+
 	// set the number of levels to one
 	H->numberOfLevels = 1;
 	
@@ -69,7 +69,7 @@ int partition(nodes nodes, int arr[], int low, int high){
 	int i = (low - 1);	// index of smaller element 
 	int j;
 	
-	for (j = low; j <= high - 1; j++){ 
+	for (j = low; j <= (high - 1); j++){ 
 		// if current element is smaller than or equal to pivot
 		if(nodes.array[arr[j]].connectivity <= pivot){ 
 			i++;    // increment index of smaller element 
@@ -78,10 +78,10 @@ int partition(nodes nodes, int arr[], int low, int high){
 			swap(&arr[i], &arr[j]); 
 		}
 	}
-	
+
 	// swap i + 1 and high element
 	swap(&arr[i + 1], &arr[high]); 
-    
+	
 	return (i + 1); 
 } 
   
@@ -151,6 +151,181 @@ void decluster(hypergraph *H, int level){
 	return;	// successful return of decluster
 }
 
+void calculateDbMbPb(int grid_num, binGrids *B, hypergraph H, int i, nodes nodes, connectivitySortedNodes sortedNodes, chip chip){
+	int j, w, k;	// counter for the loops
+	int xCounter, yCounter;		// counters to calculate Pb
+	double dx, dy;				// center (from node) to center (from bin) distance, in x and y directions
+	double px, py, a, b;		// variables to calculate Db	
+	
+	// initialize the center, Db, Mb and Pb for each bin
+	for(j = 0; j < grid_num; j++){
+		for(w = 0; w < grid_num; w++){
+			if(w == (grid_num - 1)){
+				B->array[j][w].xCenter = (double) (B->xRange[w] + B->wb) / 2;
+			}else{
+				B->array[j][w].xCenter = (double) B->xRange[w + 1] / 2;
+			}
+			
+			if(j == (grid_num - 1)){
+				B->array[j][w].yCenter = (double) (B->yRange[j] + B->hb) / 2;
+			}else{
+				B->array[j][w].yCenter = (double) B->yRange[j + 1] / 2;
+			}
+			
+			//printf("%lf %lf\n", B.array[j][w].xCenter, B.array[j][w].yCenter);
+			
+			B->array[j][w].Db = 0;
+			B->array[j][w].Mb = 0;
+			B->array[j][w].Pb = 0;
+		}
+	}
+	
+	// calculate Pb
+	// if circuit have preplaced nodes in the chip, we have to calculate the Pb for each bin
+	if(chip.pbInChip == 1){
+		// initialize y counter
+		yCounter = 0;
+			
+		// start scanning for the preplaced areas
+		for(j = 0; j < chip.numberOfRows; j++){
+			for(w = 0; w < chip.array[j].height; w++){
+				// initialize x counter
+				xCounter = 0;
+				
+				for(k = 0; k < chip.array[j].width; k++){
+					// check if slot in the chip is unavailable and increase the Pb in the corresponding bin
+					if(chip.array[j].mixedArray[w][k] == notAvailable){
+						// increase the preplaced area in the bin (j,w)
+						B->array[yCounter][xCounter].Pb++;	
+					}
+					
+					// move to the next bin in x direction
+					if((k - 1) == B->xRange[xCounter]){
+						xCounter++;	
+					}
+				}
+			}	
+				
+			// move to the next bin in y direction	
+			if((w - 1) == B->yRange[yCounter]){
+				yCounter++;	
+			}	
+		}
+	}
+		
+	// calculate Mb for each bin
+	for(j = 0; j < grid_num; j++){
+		for(w = 0; w < grid_num; w++){
+			B->array[j][w].Mb = tdensity * ((B->wb * B->hb) - B->array[j][w].Pb);
+		}
+	}
+		
+	// calculate Db for each bin
+	for(j = 0; j < grid_num; j++){
+		for(w = 0; w < grid_num; w++){
+			for(k = 0; k < H.array[i].blockNumber; k++){
+				// calculate center to center distance in x direction
+				dx = fabs(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xCenter - B->array[j][w].xCenter);
+				
+				if((dx >= 0) && 
+				   (dx <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + B->wb))){
+					// calculate a
+					a = (double) 4 / ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 2 * B->wb) * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 4 * B->wb));
+					
+					// calculate px
+					px = 1 - a * pow(dx, 2);				
+				}else if((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + B->wb) <= dx) &&
+						   (dx <= (((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + 2 * B->wb)))){
+					// calculate b
+					b = (double) 2 / (B->wb * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 4 * B->wb));
+					
+					// calculate px
+					px = b * pow(dx - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) - (2 * B->wb), 2);		
+				}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + 2 * B->wb))) <= dx){
+					// calculate px
+					px = 0;
+				}
+				
+				// calculate center to center distance in y direction
+				dy = fabs(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yCenter - B->array[j][w].yCenter);
+				
+				if((dy >= 0) && 
+				   (dy <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B->wb))){
+					// calculate a
+					a = (double) 4 / ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 2 * B->wb) * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 4 * B->wb));
+					
+					// calculate py
+					py = 1 - a * pow(dy, 2);				
+				}else if((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B->wb) <= dy) &&
+						   (dy <= (((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + 2 * B->wb)))){
+					// calculate b
+					b = (double) 2 / (B->wb * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 4 * B->wb));
+					
+					// calculate py
+					py = b * pow(dy - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) - (2 * B->wb), 2);		
+				}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + 2 * B->wb))) <= dy){
+					// calculate py
+					py = 0;
+				}
+				
+				// calculate Db for the bin (j,w)
+				B->array[j][w].Db += px * py; 
+			}
+		}
+	}
+	
+	return;	// successful return of calculateDbMbPb	
+}
+
+double W(nodes nodes, nets nets, chip chip){
+	int i, j;	// counters for the loops
+	double g;	// g parameter for the log-sum-exp model
+	double totalWireLength = 0.0;	// total wirelength
+	double logxk, log_xk, logyk, log_yk;	// temporary variables for the wirelength calculation
+	
+	// g have the value of the 1% of the chip width
+	g = 0.01 * chip.array[0].width;
+
+	// calculate wire length for each net
+	// with log-sum-exp model
+	for(i = 0; i < nets.numberOfNets; i++){
+		// initialize the sum of four paramaters for each net
+		logxk = log_xk = logyk = log_yk = 0.0;
+		
+		for(j = 0; j < nets.array[i].netDegree; j++){
+			// calculate the sum of four paramater for each net
+			logxk  += exp((double) nodes.array[nets.array[i].netNodes[j]].x / g);
+			log_xk += exp((double) -nodes.array[nets.array[i].netNodes[j]].x / g);
+			logyk  += exp((double) nodes.array[nets.array[i].netNodes[j]].y / g);
+			log_yk += exp((double) -nodes.array[nets.array[i].netNodes[j]].y / g);
+			/*
+			printf("e^(%.2f / %.2lf) = %.20lf\n"
+				   "e^(%.2f / %.2lf) = %.20lf\n"
+				   "e^(%.2f / %.2lf) = %.20lf\n"
+				   "e^(%.2f / %.2lf) = %.20lf\n", nodes.array[nets.array[i].netNodes[j]].x,  g, logxk,
+												  -nodes.array[nets.array[i].netNodes[j]].x, g, log_xk, 
+											      nodes.array[nets.array[i].netNodes[j]].y,  g, logyk, 
+												  -nodes.array[nets.array[i].netNodes[j]].y, g, log_yk);
+			getch();
+			*/
+		}
+		// calculate the log value of four paramaters for net j
+		logxk  = log(logxk);
+		log_xk = log(log_xk);
+		logyk  = log(logyk);
+		log_yk = log(log_yk);
+		
+		// add the net i wirelength to the total wirelength
+		totalWireLength += (logxk + log_xk + logyk + log_yk);
+	}
+	
+	// multiply the total wirelegth with g 
+	totalWireLength *= g;
+	
+	// return the total wirelength
+	return totalWireLength;	// successful return of W 
+}
+
 float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 	int i, j, w, k;	// counters for the loops
 	int level;		// counter for the hypergaph levels	
@@ -162,13 +337,13 @@ float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 	int xCounter, yCounter;		// counters to calculate Pb
 	double dx, dy;				// center (from node) to center (from bin) distance, in x and y directions
 	double px, py, a, b;		// variables to calculate Db	
-		
+
 	// mixed size circuit
 	createH0(&H, nodes.numberOfNodes - nodes.numberOfTerminals);
 	
 	// get the sorted nodes based on their connectivity	
 	sortedNodes = sortNodesByConnectivity(nodes);	
-	
+
 	// initialize level to zero
 	level = 0;
 	
@@ -245,124 +420,12 @@ float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 			//printf("%lf ", B.xRange[j]);
 			//printf("%lf ", B.yRange[j]);
 		}
-		/*
-		// initialize the center, Db, Mb and Pb for each bin
-		for(j = 0; j < grid_num; j++){
-			for(w = 0; w < grid_num; w++){
-				if(w == (grid_num - 1)){
-					B.array[j][w].xCenter = (double) (B.xRange[w] + B.wb) / 2;
-				}else{
-					B.array[j][w].xCenter = (double) B.xRange[w + 1] / 2;
-				}
-				
-				if(j == (grid_num - 1)){
-					B.array[j][w].yCenter = (double) (B.yRange[j] + B.hb) / 2;
-				}else{
-					B.array[j][w].yCenter = (double) B.yRange[j + 1] / 2;
-				}
-				
-				//printf("%lf %lf\n", B.array[j][w].xCenter, B.array[j][w].yCenter);
-				
-				B.array[j][w].Db = 0;
-				B.array[j][w].Mb = 0;
-				B.array[j][w].Pb = 0;
-			}
-		}
 		
-		// calculate Pb
-		// if circuit have preplaced nodes in the chip, we have to calculate the Pb for each bin
-		if(chip.pbInChip == 1){
-			// initialize y counter
-			yCounter = 0;
+		// calculate Db, Mb and Pb
+		calculateDbMbPb(grid_num, &B, H, i, nodes, sortedNodes, chip);
 			
-			// start scanning for the preplaced areas
-			for(j = 0; j < chip.numberOfRows; j++){
-				for(w = 0; w < chip.array[j].height; w++){
-					// initialize x counter
-					xCounter = 0;
-					
-					for(k = 0; k < chip.array[j].width; k++){
-						// check if slot in the chip is unavailable and increase the Pb in the corresponding bin
-						if(chip.array[j].mixedArray[w][k] == notAvailable){
-							// increase the preplaced area in the bin (j,w)
-							B.array[yCounter][xCounter].Pb++;	
-						}
-						
-						// move to the next bin in x direction
-						if((k - 1) == B.xRange[xCounter]){
-							xCounter++;	
-						}
-					}
-				}	
-					
-				// move to the next bin in y direction	
-				if((w - 1) == B.yRange[yCounter]){
-					yCounter++;	
-				}	
-			}
-		}
-		
-		// calculate Mb for each bin
-		for(j = 0; j < grid_num; j++){
-			for(w = 0; w < grid_num; w++){
-				B.array[j][w].Mb = tdensity * ((B.wb * B.hb) - B.array[j][w].Pb);
-			}
-		}
-		
-		// calculate Db for each bin
-		for(j = 0; j < grid_num; j++){
-			for(w = 0; w < grid_num; w++){
-				for(k = 0; k < H.array[i].blockNumber; k++){
-					// calculate center to center distance in x direction
-					dx = fabs(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xCenter - B.array[j][w].xCenter);
-					
-					if((dx >= 0) && 
-					   (dx <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + B.wb))){
-						// calculate a
-						a = (double) 4 / ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 2 * B.wb) * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 4 * B.wb));
-						
-						// calculate px
-						px = 1 - a * pow(dx, 2);				
-					}else if((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + B.wb) <= dx) &&
-							   (dx <= (((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + 2 * B.wb)))){
-						// calculate b
-						b = (double) 2 / (B.wb * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 4 * B.wb));
-						
-						// calculate px
-						px = b * pow(dx - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) - (2 * B.wb), 2);		
-					}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + 2 * B.wb))) <= dx){
-						// calculate px
-						px = 0;
-					}
-					
-					// calculate center to center distance in y direction
-					dy = fabs(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yCenter - B.array[j][w].yCenter);
-					
-					if((dy >= 0) && 
-					   (dy <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B.wb))){
-						// calculate a
-						a = (double) 4 / ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 2 * B.wb) * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 4 * B.wb));
-						
-						// calculate py
-						py = 1 - a * pow(dy, 2);				
-					}else if((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B.wb) <= dy) &&
-							   (dy <= (((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + 2 * B.wb)))){
-						// calculate b
-						b = (double) 2 / (B.wb * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 4 * B.wb));
-						
-						// calculate py
-						py = b * pow(dy - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) - (2 * B.wb), 2);		
-					}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + 2 * B.wb))) <= dy){
-						// calculate py
-						py = 0;
-					}
-					
-					// calculate Db for the bin (j,w)
-					B.array[j][w].Db += px * py; 
-				}
-			}
-		}
-		*/
+			
+			
 		//printf("\n%d - %d", H.array[i].range[0], H.array[i].range[1]);
 		if(i != 0){	// if we are not in the last spread (level 0)
 			// decluster nodes from current level (i) to the next level (i-1) 
@@ -376,7 +439,7 @@ float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 		// free the bins
 		free(B.array);
 		
-		getch();
+		//getch();
 	}
 	
 	// end of clocks counting

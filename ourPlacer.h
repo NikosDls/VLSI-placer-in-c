@@ -49,5 +49,6 @@ void firstChoiceClustering(hypergraph *, int);
 connectivitySortedNodes sortNodesByConnectivity(nodes);
 float ourPlacerGP(nodes, nets, chip, int);
 void decluster(hypergraph *, int);
+void calculateDbMbPb(int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes, chip);
 
 #endif // ourPlacer_H
