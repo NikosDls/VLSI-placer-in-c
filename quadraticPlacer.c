@@ -131,7 +131,9 @@ float solveQP(nodes *nodes, nets nets){
 		printf("%lf ", By[i]);
     }
     */
-printf("solve");
+
+	//printf("solve");
+	
 	// create the results vectors x and y
 	x = malloc(n * sizeof(double));
 	y = malloc(n * sizeof(double));
@@ -306,7 +308,7 @@ void QP(nodes *nodes, nets nets, hypergraph H){
 		}
 		//printf("%f\n", nodes->array[H.array[H.numberOfLevels - 1].range[0] + i].xCenter);
     }
-    getch();
+
     //printf("\n\ny:\n");
     
     // save y solutions

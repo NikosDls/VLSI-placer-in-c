@@ -47,8 +47,11 @@ typedef struct connectivitySortedNodes{
 void createH0(hypergraph *, int);
 void firstChoiceClustering(hypergraph *, int);
 connectivitySortedNodes sortNodesByConnectivity(nodes);
-float ourPlacerGP(nodes, nets, chip, int);
 void decluster(hypergraph *, int);
 void calculateDbMbPb(int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes, chip);
+double W(nodes, nets, chip);
+void wGradientX(nodes, nets, chip, double *);
+void wGradientY(nodes, nets, chip, double *);
+float ourPlacerGP(nodes, nets, chip, int);
 
 #endif // ourPlacer_H

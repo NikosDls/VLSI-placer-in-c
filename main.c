@@ -229,6 +229,43 @@ int main(){
 			return 1;
 			*/
 			
+			// test gradient calculation
+			double *gX, *gY;
+			
+			gX = malloc(nodes.numberOfNodes * sizeof(double));
+			gY = malloc(nodes.numberOfNodes * sizeof(double));
+			
+			wGradientX(nodes, nets, chip, gX);
+			wGradientY(nodes, nets, chip, gY);
+			
+			double s = 0.0;
+			for(i = 0; i < nodes.numberOfNodes; i++){
+				s += fabs(gX[i] + gY[i]);
+			}
+			printf("sum of the x and y gradient of function w: %lf\n", s);
+			
+			/*
+			for(i = 0; i < nodes.numberOfNodes; i++){
+				printf("X gradient for node %10s = %.40lf\n", nodes.array[i].name, gX[i]);
+				
+				// pause every 100 loops
+				if((i %100) == 0){
+					getch();
+				}	
+			}
+			*/
+			return 1;
+			
+			/*
+			double test;
+			for(i = 0; i < nodes.numberOfNodes; i++){
+				test = PDxW(nodes, nets, chip, nodes.array[i].name);
+				printf("PDxW for node %s = %lf\n", nodes.array[i].name, test);
+			}
+			
+			return 1;
+			*/
+			
 			// write the results to file
 			writeResults(nodes, choice, filesFolder, GPseconds, LGseconds, hpwl);
 			

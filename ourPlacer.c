@@ -270,6 +270,14 @@ void calculateDbMbPb(int grid_num, binGrids *B, hypergraph H, int i, nodes nodes
 				
 				// calculate Db for the bin (j,w)
 				B->array[j][w].Db += px * py; 
+				
+				/*
+				// px or py cant be greater than 1
+				if(px > 1 || py > 1){
+					printf("px %lf\npy %lf\n\n", px, py);
+					getch();
+				}
+				*/			
 			}
 		}
 	}
@@ -309,6 +317,7 @@ double W(nodes nodes, nets nets, chip chip){
 			getch();
 			*/
 		}
+		
 		// calculate the log value of four paramaters for net j
 		logxk  = log(logxk);
 		log_xk = log(log_xk);
@@ -326,6 +335,211 @@ double W(nodes nodes, nets nets, chip chip){
 	return totalWireLength;	// successful return of W 
 }
 
+double PDxW(nodes nodes, nets nets, chip chip, char *nodeName){
+	int i, j;	// counters for the loops
+	double g;	// g parameter for the log-sum-exp model
+	double logxk1, log_xk1, logxk2, log_xk2, logyk, log_yk;	// temporary variables for the wirelength calculation
+	
+	const double delta = 1.0e-6;	// small step to find the derivative
+	double sumSubDelta = 0.0, sumAddDelta = 0.0;	// x - delta and x + delta sum
+	
+	// g have the value of the 1% of the chip width
+	g = 0.01 * chip.array[0].width;
+
+	// calculate wire length for each net
+	// with log-sum-exp model
+	for(i = 0; i < nets.numberOfNets; i++){
+		// initialize the sum of four paramaters for each net
+		logxk1 = log_xk1 = logxk2 = log_xk2 = logyk = log_yk = 0.0;
+		
+		for(j = 0; j < nets.array[i].netDegree; j++){
+			// calculate the sum of four paramater for each net
+			if(strcmp(nodeName, nodes.array[nets.array[i].netNodes[j]].name) == 0){	// derivative node
+				// x - delta
+				logxk1  += exp((double) (nodes.array[nets.array[i].netNodes[j]].x - delta) / g);
+				log_xk1 += exp((double) (-nodes.array[nets.array[i].netNodes[j]].x - delta) / g);
+				
+				// x + delta
+				logxk2  += exp((double) (nodes.array[nets.array[i].netNodes[j]].x + delta) / g);
+				log_xk2 += exp((double) (-nodes.array[nets.array[i].netNodes[j]].x + delta) / g);					
+			}else{	// normal node
+				// x
+				logxk1  += exp((double) nodes.array[nets.array[i].netNodes[j]].x / g);
+				log_xk1 += exp((double) -nodes.array[nets.array[i].netNodes[j]].x / g);
+				
+				logxk2  = logxk1;
+				log_xk2 = log_xk1;
+			}
+			
+			// y is fixed since we derive the node for x
+			logyk  += exp((double) nodes.array[nets.array[i].netNodes[j]].y / g);
+			log_yk += exp((double) -nodes.array[nets.array[i].netNodes[j]].y / g);
+		}
+		
+		// calculate the log value of four paramaters for net j
+		logxk1  = log(logxk1);
+		log_xk1 = log(log_xk1);
+		logxk2  = log(logxk2);
+		log_xk2 = log(log_xk2);
+		
+		logyk  = log(logyk);
+		log_yk = log(log_yk);
+		
+		// add the net i wirelength to the total wirelength
+		sumSubDelta += (logxk1 + log_xk1 + logyk + log_yk);
+		
+		// add the net i wirelength to the total wirelength
+		sumAddDelta += (logxk2 + log_xk2 + logyk + log_yk);
+	}
+	
+	// multiply the total wirelegth with g 
+	sumSubDelta *= g;	
+	sumAddDelta *= g;
+
+	// return the partial derivative x for the node
+	return (sumAddDelta - sumSubDelta) / (2 * delta);	// successful return of PDxW 
+}
+
+void wGradientX(nodes nodes, nets nets, chip chip, double *gradient){
+	int i, j;	// counters for the loops
+	double g;	// g parameter for the log-sum-exp model
+	double totalWireLength = 0.0;	// total wirelength
+	
+	double commonPos, commonNeg;	// common constant for all net
+	double *expDerivativesPos, *expDerivativesNeg;	// exponential derivative for each node k in the net (e^(xk / g))
+	
+	// creating the gradient vector
+	//gradient = malloc(nodes.numberOfNodes * sizeof(double));
+	
+	// initialize gradient vector to zero
+	for(i = 0; i < nodes.numberOfNodes; i++){
+		gradient[i] = 0;
+	}
+	
+	// g have the value of the 1% of the chip width
+	g = 0.01 * chip.array[0].width;
+
+	// calculate wire length for each net
+	// with log-sum-exp model
+	for(i = 0; i < nets.numberOfNets; i++){
+		// initialize common constant for net i
+		commonPos = commonNeg = 0.0;
+		
+		// creating the exponential vectors
+		expDerivativesPos = malloc(nets.array[i].netDegree * sizeof(double));
+		expDerivativesNeg = malloc(nets.array[i].netDegree * sizeof(double));
+		
+		// calculate exponential derivatives and common constant for each node in the net i
+		for(j = 0; j < nets.array[i].netDegree; j++){
+			// find the e^(xk / g) and e^(-xk / g)
+			expDerivativesPos[j] = exp((double) nodes.array[nets.array[i].netNodes[j]].x / g);		
+			expDerivativesNeg[j] = exp((double) -nodes.array[nets.array[i].netNodes[j]].x / g);	
+			
+			// calculate the denominator of common constant
+			commonPos += expDerivativesPos[j];
+			commonNeg += expDerivativesNeg[j];
+		}
+		
+		// calculate the common constant
+		commonPos = (double) 1 / commonPos;
+		commonNeg = (double) 1 / commonNeg;
+		
+		// calculate gradient for each node in the net i
+		for(j = 0; j < nets.array[i].netDegree; j++){
+			// add to gradient the new gradient
+			/*
+			printf("commonPos %20.25lf\n"
+				   "1/g       %20.25lf\n"
+				   "expDPos   %20.25lf\n\n", commonPos, (double) 1 / g, expDerivativesPos[j]);
+				   
+			printf("commonNeg %20.25lf\n"
+				   "1/g       %20.25lf\n"
+				   "expDNeg   %20.25lf", commonNeg, (double) 1 / g, expDerivativesNeg[j]);getch();
+			*/	   
+			gradient[nets.array[i].netNodes[j]] += commonPos * (double) (1 / g) * expDerivativesPos[j];
+			gradient[nets.array[i].netNodes[j]] += commonNeg * (double) (1 / g) * expDerivativesNeg[j];
+			
+			//printf("\n\n%d node %s == %.50lf\n\n", nets.array[i].netNodes[j], nodes.array[nets.array[i].netNodes[j]].name, gradient[nets.array[i].netNodes[j]]);getch();
+		}
+		
+		// free the exponential derivatives
+		free(expDerivativesPos);
+		free(expDerivativesNeg);
+	}
+	
+	return;	// successful return of gradient 
+}
+
+void wGradientY(nodes nodes, nets nets, chip chip, double *gradient){
+	int i, j;	// counters for the loops
+	double g;	// g parameter for the log-sum-exp model
+	double totalWireLength = 0.0;	// total wirelength
+	
+	double commonPos, commonNeg;	// common constant for all net
+	double *expDerivativesPos, *expDerivativesNeg;	// exponential derivative for each node k in the net (e^(xk / g))
+	
+	// creating the gradient vector
+	//gradient = malloc(nodes.numberOfNodes * sizeof(double));
+	
+	// initialize gradient vector to zero
+	for(i = 0; i < nodes.numberOfNodes; i++){
+		gradient[i] = 0;
+	}
+	
+	// g have the value of the 1% of the chip width
+	g = 0.01 * chip.array[0].width;
+
+	// calculate wire length for each net
+	// with log-sum-exp model
+	for(i = 0; i < nets.numberOfNets; i++){
+		// initialize common constant for net i
+		commonPos = commonNeg = 0.0;
+		
+		// creating the exponential vectors
+		expDerivativesPos = malloc(nets.array[i].netDegree * sizeof(double));
+		expDerivativesNeg = malloc(nets.array[i].netDegree * sizeof(double));
+		
+		// calculate exponential derivatives and common constant for each node in the net i
+		for(j = 0; j < nets.array[i].netDegree; j++){
+			// find the e^(xk / g) and e^(-xk / g)
+			expDerivativesPos[j] = exp((double) nodes.array[nets.array[i].netNodes[j]].y / g);		
+			expDerivativesNeg[j] = exp((double) -nodes.array[nets.array[i].netNodes[j]].y / g);	
+			
+			// calculate the denominator of common constant
+			commonPos += expDerivativesPos[j];
+			commonNeg += expDerivativesNeg[j];
+		}
+		
+		// calculate the common constant
+		commonPos = (double) 1 / commonPos;
+		commonNeg = (double) 1 / commonNeg;
+		
+		// calculate gradient for each node in the net i
+		for(j = 0; j < nets.array[i].netDegree; j++){
+			// add to gradient the new gradient
+			/*
+			printf("commonPos %20.25lf\n"
+				   "1/g       %20.25lf\n"
+				   "expDPos   %20.25lf\n\n", commonPos, (double) 1 / g, expDerivativesPos[j]);
+				   
+			printf("commonNeg %20.25lf\n"
+				   "1/g       %20.25lf\n"
+				   "expDNeg   %20.25lf", commonNeg, (double) 1 / g, expDerivativesNeg[j]);getch();
+			*/	   
+			gradient[nets.array[i].netNodes[j]] += commonPos * (double) (1 / g) * expDerivativesPos[j];
+			gradient[nets.array[i].netNodes[j]] += commonNeg * (double) (1 / g) * expDerivativesNeg[j];
+			
+			//printf("\n\n%d node %s == %.50lf\n\n", nets.array[i].netNodes[j], nodes.array[nets.array[i].netNodes[j]].name, gradient[nets.array[i].netNodes[j]]);getch();
+		}
+		
+		// free the exponential derivatives
+		free(expDerivativesPos);
+		free(expDerivativesNeg);
+	}
+	
+	return;	// successful return of gradient 
+}
+
 float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 	int i, j, w, k;	// counters for the loops
 	int level;		// counter for the hypergaph levels	
@@ -337,7 +551,11 @@ float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 	int xCounter, yCounter;		// counters to calculate Pb
 	double dx, dy;				// center (from node) to center (from bin) distance, in x and y directions
 	double px, py, a, b;		// variables to calculate Db	
-
+	double l;			// l constant	 
+	double *wGX, *wGY;	// partial derivative vectors of function W
+	double *dGX, *dGY;	// partial derivative vectors of function Db
+	double sN, sD;		// numerator and denominator sum
+	
 	// mixed size circuit
 	createH0(&H, nodes.numberOfNodes - nodes.numberOfTerminals);
 	
@@ -368,13 +586,6 @@ float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 		nodes.array[i].y = nodes.array[i].yCenter = yCenter;
 	}
 	
-	// mark the nodes of the last level, so we can solve qp for the initial solution
-	for(i = 0; i < H.array[level].blockNumber; i++){
-		// mark nodes from the last H level
-		nodes.array[sortedNodes.array[H.array[level].range[0] + i]].id = i;
-		//printf("%s\t%d\t%d\n", nodes.array[sortedNodes.array[H.array[level].range[0] + i]].name, nodes.array[sortedNodes.array[H.array[level].range[0] + i]].id, nodes.array[sortedNodes.array[H.array[level].range[0] + i]].connectivity);
-	}
-	
 	// solve qp
 	for(i = 0; i < H.array[level].blockNumber; i++){
 		// set the nodes id in H level
@@ -391,7 +602,7 @@ float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 	
 	for(i = level; i >= 0; i--){
 		//printf("%d\n", i);
-		
+
 		// calculate the number of bins vertically and horizontally
 		grid_num = sqrt(H.array[i].blockNumber);
 		printf("\n\nNumber of grids vertically and horizontally: %d\n", grid_num);
@@ -423,7 +634,48 @@ float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax){
 		
 		// calculate Db, Mb and Pb
 		calculateDbMbPb(grid_num, &B, H, i, nodes, sortedNodes, chip);
+		
+		// create the partial derivative vectors
+		wGX = malloc(nodes.numberOfNodes * sizeof(double));
+		wGY = malloc(nodes.numberOfNodes * sizeof(double));
+		dGX = malloc(nodes.numberOfNodes * sizeof(double));
+		dGY = malloc(nodes.numberOfNodes * sizeof(double));
+		
+		// calculate the partial derivatives of function W
+		wGradientX(nodes, nets, chip, wGX);
+		wGradientY(nodes, nets, chip, wGY);
+		
+		// calculate the partial derivatives of function Db
+		//dGradientX(nodes, nets, chip, dGX);
+		//dGradientY(nodes, nets, chip, dGY);
+		
+		// initialize sums
+		sN = sD = 0.0;
+		
+		// calculate numerator and denominator
+		// to calculate the l constant
+		for(j = 0; j < H.array[i].blockNumber; j++){
+			// add to the numerator sum, the absolut value of the partial x and y derivative y of function W 
+			sN += fabs(wGX[sortedNodes.array[H.array[i].range[0] + j]] + wGY[sortedNodes.array[H.array[i].range[0] + j]]);
 			
+			// add to the denominator sum, the absolut value of the partial x and y derivative y of function Db
+			//sD += fabs(dGX[sortedNodes.array[H.array[i].range[0] + j]] + dGY[sortedNodes.array[H.array[i].range[0] + j]]);
+		}
+		
+		printf("%lf", sN);
+		getch();
+		
+		// objective function minimization
+		do{
+		
+		// increase l by two times
+		// l *= 2;
+		
+		// calculate overflow ratio
+		// ..
+		
+		// until overflow ratio its 0
+		}while(1);
 			
 			
 		//printf("\n%d - %d", H.array[i].range[0], H.array[i].range[1]);
