@@ -228,7 +228,7 @@ int main(){
 				   	   
 			return 1;
 			*/
-			
+			/*
 			// test gradient calculation
 			double *gX, *gY;
 			
@@ -244,7 +244,7 @@ int main(){
 			}
 			printf("sum of the x and y gradient of function w: %lf\n", s);
 			
-			/*
+			
 			for(i = 0; i < nodes.numberOfNodes; i++){
 				printf("X gradient for node %10s = %.40lf\n", nodes.array[i].name, gX[i]);
 				
@@ -253,9 +253,9 @@ int main(){
 					getch();
 				}	
 			}
-			*/
-			return 1;
 			
+			return 1;
+			*/
 			/*
 			double test;
 			for(i = 0; i < nodes.numberOfNodes; i++){
@@ -296,7 +296,7 @@ int main(){
 			break;
 			
 		case 3:	// our placer
-			// our global placement		
+			// our global placement
 			GPseconds = ourPlacerGP(nodes, nets, chip, 6000);
 			printf("SEC: %f", GPseconds);
 			// tetris-like legalization

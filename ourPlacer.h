@@ -48,10 +48,19 @@ void createH0(hypergraph *, int);
 void firstChoiceClustering(hypergraph *, int);
 connectivitySortedNodes sortNodesByConnectivity(nodes);
 void decluster(hypergraph *, int);
-void calculateDbMbPb(int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes, chip);
+
+void calculateMbPb(int, binGrids *, chip);
+void calculateDb(int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes);
+void DbGradientX(int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes, double *);
+void DbGradientY(int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes, double *);
+
 double W(nodes, nets, chip);
 void wGradientX(nodes, nets, chip, double *);
 void wGradientY(nodes, nets, chip, double *);
+
 float ourPlacerGP(nodes, nets, chip, int);
 
+float GPtest(nodes, nets, chip);
+//double myvalue(nodes, nets, chip, double *, CG_INT);
+//void mygrad(nodes, nets, chip, double *, double *, CG_INT);
 #endif // ourPlacer_H
