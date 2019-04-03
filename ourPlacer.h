@@ -2,9 +2,13 @@
 #define ourPlacer_H
 
 #include "parser.h"
+#include "cg_nl/cg_descent.h"
 
 // user-specified target density for each bin
 #define tdensity 0.5
+
+// find maximum between two numbers
+#define max(x,y) ((x) >= (y)) ? (x) : (y)
 
 // hypergraph level 
 typedef struct level{
@@ -49,18 +53,23 @@ void firstChoiceClustering(hypergraph *, int);
 connectivitySortedNodes sortNodesByConnectivity(nodes);
 void decluster(hypergraph *, int);
 
-void calculateMbPb(int, binGrids *, chip);
-void calculateDb(int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes);
-void DbGradientX(int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes, double *);
-void DbGradientY(int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes, double *);
+void swapC(int *, int *);
+int partitionC(nodes, int [], int, int);
+void quickSortC(nodes, int [], int, int);
+
+void calculateMbPb(int, int, binGrids *, chip);
+void calculateDb(int, int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes);
+void DbGradientX(int, int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes, double *);
+void DbGradientY(int, int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes, double *);
 
 double W(nodes, nets, chip);
 void wGradientX(nodes, nets, chip, double *);
 void wGradientY(nodes, nets, chip, double *);
 
-float ourPlacerGP(nodes, nets, chip, int);
+float ourPlacerGP(nodes, nets, chip, int, int);
 
-float GPtest(nodes, nets, chip);
-//double myvalue(nodes, nets, chip, double *, CG_INT);
-//void mygrad(nodes, nets, chip, double *, double *, CG_INT);
+double myvalue(nodes *, nets, chip, double *, CG_INT);
+void mygrad(nodes *, nets, chip, double *, double *, CG_INT);
+float ourPlacerGPtest(nodes *, nets, chip, int);
+
 #endif // ourPlacer_H

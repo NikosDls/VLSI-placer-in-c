@@ -2,14 +2,15 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <math.h>
+#include <time.h>
 
 #include "parser.h"
 #include "quadraticPlacer.h"
+#include "ourPlacer.h"
 #include "cg\cg.h"
 
-#include "cg\cg.c"
-
-float solveQP(nodes *nodes, nets nets){
+float solveQP(nodes *nodes, nets nets, int iter){
 	int i, j, w;		// counters for the loops
 	double *A;			// A array. to solve Ax = Bx, same for the By
 	double *Bx, *By;	// Bx and By arrays
@@ -145,38 +146,45 @@ float solveQP(nodes *nodes, nets nets){
 	}
 
 	// compute optimal x
-	r8ge_cg(n, A, Bx, x, 5);
+	r8ge_cg(n, A, Bx, x, iter);
+	
+	//printf("\nx:\n");
+    
+	// save x solutions
+	for(i = 0; i < n; i++){
+		nodes->array[i].x = x[i];
+		//printf("%lf\n", x[i]);
+    }
 	
 	// compute optimal y
-	r8ge_cg(n, A, By, y, 5);
+	r8ge_cg(n, A, By, y, iter);
 	
+	//printf("\n\ny:\n");
+
+	// save y solutions
+	for(i = 0; i < n; i++){
+		nodes->array[i].y = y[i];
+		//printf("%lf\n", y[i]);
+    }
+
 	// end of clocks counting
 	clock_t end = clock();
 	
 	// calculate the time in seconds
 	float seconds = (float)(end - start) / CLOCKS_PER_SEC;
 	
-    //printf("\nx:\n");
-    
-    // save x solutions
-	for(i = 0; i < n; i++){
-		nodes->array[i].x = x[i];
-		//printf("%lf\n", x[i]);
-    }
-    
-    //printf("\n\ny:\n");
-    
-    // save y solutions
-	for(i = 0; i < n; i++){
-		nodes->array[i].y = y[i];
-		//printf("%lf\n", y[i]);
-    }
+	// free the arrays
+	free(A);
+	free(Bx);
+	free(By);
+	free(x);
+	free(y);
 	
 	// return the execution time in seconds of quadratic gp algorithm
 	return seconds;	// successful return of solveQP 
 }
 
-void QP(nodes *nodes, nets nets, hypergraph H){
+void QP(nodes *nodes, nets nets, hypergraph H, connectivitySortedNodes sortedNodes, int iter){
 	int i, j, w;		// counters for the loops
 	double *A;			// A array. to solve Ax = Bx, same for the By
 	double *Bx, *By;	// Bx and By arrays
@@ -281,8 +289,6 @@ void QP(nodes *nodes, nets nets, hypergraph H){
 		}
 	}
 	
-	printf("solve");
-	
 	// create the results vectors x and y
 	x = malloc(n * sizeof(double));
 	y = malloc(n * sizeof(double));
@@ -294,30 +300,35 @@ void QP(nodes *nodes, nets nets, hypergraph H){
 	}
 
 	// compute optimal x
-	r8ge_cg(n, A, Bx, x, 40);
+	r8ge_cg(n, A, Bx, x, iter);
 
-	// compute optimal y
-	r8ge_cg(n, A, By, y, 40);
-	
-    //printf("\nx:\n");
-    
+	//printf("\nx:\n");
     // save x solutions
 	for(i = 0; i < n; i++){
 		if(x[i] != 0.0){
-			nodes->array[H.array[H.numberOfLevels - 1].range[0] + i].xCenter = x[i];
+			nodes->array[sortedNodes.array[H.array[H.numberOfLevels - 1].range[0] + i]].x = x[i];
+			//printf("%f\n", nodes->array[H.array[H.numberOfLevels - 1].range[0] + i].x);
 		}
-		//printf("%f\n", nodes->array[H.array[H.numberOfLevels - 1].range[0] + i].xCenter);
     }
-
-    //printf("\n\ny:\n");
     
+	// compute optimal y
+	r8ge_cg(n, A, By, y, iter);
+	
+	//printf("\n\ny:\n");
     // save y solutions
 	for(i = 0; i < n; i++){
 		if(y[i] != 0.0){
-			nodes->array[H.array[H.numberOfLevels - 1].range[0] + i].yCenter = y[i];
+			nodes->array[sortedNodes.array[H.array[H.numberOfLevels - 1].range[0] + i]].y = y[i];
+			//printf("%f\n", nodes->array[H.array[H.numberOfLevels - 1].range[0] + i].y);
 		}
-		//printf("%f\n", nodes->array[H.array[H.numberOfLevels - 1].range[0] + i].yCenter);
     }
-	
+
+	// free the arrays
+	free(A);
+	free(Bx);
+	free(By);
+	free(x);
+	free(y);	
+
 	return;	// successful return of QP 
 }

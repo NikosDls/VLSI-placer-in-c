@@ -34,7 +34,10 @@ typedef struct node{
 	int xLength;
 	int yLength;
 	
-	int connectivity;	// the number of nodes which are connected with the node
+	double connectivity;// the number of nodes which are connected with the node
+	double priority;	// priority for the legalization
+	int level;			// in what hypergraph level it is
+	int id;				// -1 if the node it isnt in the last H level otherwise it works like indicator for the node potition in H level
 	
 	int placed;		// 1 if the node its placed on the chip otherwise 0 
 	int terminal;	// 1 if the node its terminal otherwise 0
@@ -45,6 +48,7 @@ typedef struct node{
 typedef struct nodes{
 	int numberOfNodes;		// total number of nodes
 	int numberOfTerminals;	// number of terminal nodes
+	int terminalsNI;		// number of non terminal NI nodes, only for superblue circuits
 	node *array;			// array with all nodes
 }nodes;
 

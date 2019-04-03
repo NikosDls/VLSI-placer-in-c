@@ -6,6 +6,7 @@
 // header files
 #include "parser.h"
 #include "random_gp.h"
+#include "quadraticPlacer.h"
 #include "tetris_lg.h"
 #include "hpwl.h"
 #include "ourPlacer.h"
@@ -15,10 +16,12 @@
 // we compile the programm like gcc main.c (all .c files) -o placer
 #include "parser.c"
 #include "random_gp.c"
+#include "quadraticPlacer.c"
 #include "tetris_lg.c"
 #include "hpwl.c"
 #include "ourPlacer.c"
 #include "writeResults.c"
+#include "cg\cg.c"
 
 int main(){
 	//nodes e;
@@ -36,11 +39,14 @@ int main(){
  	int choice;		// user choice about placement algorithm
 	
 	int i, j, w, k;	// counters for the loops
-	int markFrom, markUntil;			// variables to set where the preplaced nodes is in the chip as not available
+	int markFromY, markUntilY;			// variables to set the chip area as not available, where the preplaced nodes is
+	int markFromX, markUntilX;			// variables to set the chip area as not available, where the preplaced nodes is
 	int unavailableArea = 0, total = 0;	// area of terminal nodes in the chip and total chip area
+	int totalMovableArea;				// total movable area of the chip
 	
 	// placer variables
-	float GPseconds, LGseconds;	// to count gp and lg algorithm runtime
+	int s;	// s is 1 when we do simple minimiation otherwise 0
+	float GPseconds, LGseconds;	// to count gp and lg algorithms runtime
 	float hpwl;		// half perimeter wirelength 
 	// END OF placer variables
 	
@@ -67,10 +73,10 @@ int main(){
 
 	// read the nets file (.nets)
 	readNets(filesNames[1], &nets, &nodes);
-	
+
 	// read the chip file (.scl)
 	readChip(filesNames[4], &chip);
-	
+
 	// read the pads (pins) coordinates file (.pl)
 	readPads(filesNames[3], &nodes);
 // end of parse
@@ -90,7 +96,7 @@ int main(){
 			if(temp == 0){
 				// save the first node height to compare it with the others
 				cellHeight = nodes.array[i].yLength;
-
+				
 				// initialize done
 				temp = 1;
 			}else{
@@ -103,16 +109,18 @@ int main(){
 			// calculate chip height
 			chipHeight = chip.array[chip.numberOfRows - 1].coordinate + chip.array[chip.numberOfRows - 1].height;
 			
-			if(((nodes.array[i].x >= 0) && (nodes.array[i].x < chip.array[0].width)) &&
-				((nodes.array[i].y >= 0) && (nodes.array[i].y < chipHeight))
-				){
-					// terminal node is in the chip area
-					chip.pbInChip = 1;
-					
-					// mark the terminal node as preplaced in the chip
-					nodes.array[i].preplaced = 1;
-					//printf("%s\t", nodes->array[i].name);
-					//printf("%lf %lf\n", nodes->array[i].x, nodes->array[i].y);	
+			for(j = 0; j < chip.numberOfRows; j++){
+				if(((nodes.array[i].x >= 0) && (nodes.array[i].x < chip.array[j].width)) &&
+					((nodes.array[i].y >= 0) && (nodes.array[i].y < chipHeight))
+					){
+						// terminal node is in the chip area
+						chip.pbInChip = 1;
+						
+						// mark the terminal node as preplaced in the chip
+						nodes.array[i].preplaced = 1;
+						//printf("%s\t", nodes->array[i].name);
+						//printf("%lf %lf\n", nodes->array[i].x, nodes->array[i].y);	
+					}
 			}
 		}
 	}
@@ -127,42 +135,84 @@ int main(){
 			chip.array[i].mixedArray[j] = malloc(chip.array[i].width * sizeof(slot));
 				
 			for(w = 0; w < chip.array[i].width; w++){
-					chip.array[i].mixedArray[j][w] = available;
-					
-					// increase the chip total area
-					total++;
+				chip.array[i].mixedArray[j][w] = available;
+				
+				// increase the chip total area
+				total++;
 			}
 		}
 	}
-				
+
 	// if circuit have preplaced nodes in the chip, we have to mark those chip areas as notAvailable
 	if(chip.pbInChip == 1){
 		for(i = 0; i < nodes.numberOfNodes; i++){
 			if(nodes.array[i].preplaced == 1){
 				//printf("\n%s size(%d,%d)\n", nodes.array[i].name, nodes.array[i].xLength, nodes.array[i].yLength);
 				// set the y coordinate target area
-				// x coordinate target area is the node x length
-				markFrom = nodes.array[i].y;
-				markUntil = markFrom + nodes.array[i].yLength;
-					
+				markFromY = (int) roundf(nodes.array[i].y);
+				markUntilY = markFromY + nodes.array[i].yLength;
+				
+				// set the x coordinate target area
+				markFromX = (int) roundf(nodes.array[i].x);
+				markUntilX = markFromX + nodes.array[i].xLength;
+				
 				// temp height
 				chipHeight = 0;
-					
+
 				// start scanning for the preplaced nodes
 				for(j = 0; j < chip.numberOfRows; j++){
 					for(w = 0; w < chip.array[j].height; w++){
 						// preplaced node position found in the chip row j
-						if((markFrom <= chipHeight) && (markUntil > chipHeight)){
+						if((markFromY <= chipHeight) && (markUntilY > chipHeight)){
 							//printf("\n\nmark row %d ->\t", j);
 							// starting mark the chip area of preplaced node as not available
-							for(k = 0; k < nodes.array[i].xLength; k++){
-								chip.array[j].mixedArray[chipHeight % chip.array[j].height][k] = notAvailable;
-								//printf("(%d, %d) ", k, chipHeight % chip.array[j].height);
+							/*
+							if(strcmp(nodes.array[i].name, "o1096433") == 0){
+								printf("w %d\n", w);
+								printf("%d %d\t", markFromX, markUntilX);
+								printf("%d %d\n", markFromY, markUntilY);
+								printf("%d\t", j);
+								printf("row width %d - height %d\tcell %s %d\n", chip.array[j].width, chip.array[j].height, nodes.array[i].name, (int)nodes.array[i].x);
+							getch();
 							}
+							*/
+							
+							// for some reason the loop below doesnt work
+							// so we handle it with a simple loop and break statement
+							//for(k = markFromX; k < markUntilX; k++){
+							for(k = markFromX; k < chip.array[j].width; k++){
+								if(markUntilX > k){
+									chip.array[j].mixedArray[w][k] = notAvailable;
+									/*
+									if(strcmp(nodes.array[i].name, "o1096433") == 0){
+										printf("%d - %d\n", w, k);
+									}
+									*/
+									//printf("(%d, %d) ", k, chipHeight % chip.array[j].height);
+								}
+								
+								// mark X for node i done
+								if(k >= markUntilX){
+									break;
+								}
+							}
+							
+							/*
+							if(strcmp(nodes.array[i].name, "o1096433") == 0){
+								printf("%d\t", w);
+								printf("%d\n\n", chipHeight);
+								getch();
+							}
+							*/
 						}
 							
 						// increase the height
 						chipHeight++;
+					}
+					
+					// mark Y for node i done
+					if(chipHeight > markUntilY){
+						break;
 					}
 				}
 			}
@@ -175,17 +225,19 @@ int main(){
 					if(chip.array[i].mixedArray[j][w] == notAvailable){
 						unavailableArea++;
 					}
-					
 				}
 			}
 		}
-	}		
+	}
+	
+	// calculate total movable area
+	totalMovableArea = total - unavailableArea;
 	
 	// print the chip informations
 	printf("\n\n----------------------------------------");
 	printf("\nCHIP TOTAL AREA         : %d", total);
-	printf("\nCHIP AVAILABLE AREA     : %d", total - unavailableArea);
 	printf("\nCHIP NOT AVAILABLE AREA : %d", unavailableArea);
+	printf("\nCHIP AVAILABLE AREA     : %d", totalMovableArea);
 	if(unavailableArea != 0){
 		printf("\n\nSO THE %.2lf%% OF THE TOTAL CHIP AREA IS UNAVAILABLE", ((double) unavailableArea / total) * 100);
 	}
@@ -282,31 +334,72 @@ int main(){
 		case 2:	// QP and tetris LG
 				// testing QP (for circuits with more than 15000 nodes, much memory required)
 			// quadratic global placement
-			GPseconds = solveQP(&nodes, nets);	
-			
+			GPseconds = solveQP(&nodes, nets, 30);
+
 			// tetris-like legalization
 			LGseconds = tetrisLG(&nodes, chip);
 
 			// compute the wirelegth
 			hpwl = HPWL(nodes, nets);
-			
+	
 			// write the results to file
 			writeResults(nodes, choice, filesFolder, GPseconds, LGseconds, hpwl);
 	
 			break;
 			
 		case 3:	// our placer
-			// our global placement
-			GPseconds = ourPlacerGP(nodes, nets, chip, 6000);
-			printf("SEC: %f", GPseconds);
-			// tetris-like legalization
-			//LGseconds = tetrisLG(&nodes, chip);
+			s = 0;	// do minimization with density constraints
+			//s = 1;	// do simple minimization
 			
-			// compute the wirelegth
-			//hpwl = HPWL(nodes, nets);
+			if(s == 0){
+				// our global placement with density constraints
+				ourPlacerGP(nodes, nets, chip, 6000, totalMovableArea);
+				
+				return 1;
 			
-			// write the results to file
-			//writeResults(nodes, choice, filesFolder, GPseconds, LGseconds, hpwl);
+				// compute the wirelegth after our global non legal placement
+				float after = HPWL(nodes, nets);
+				
+				// write the results to file
+				writeResults(nodes, choice, filesFolder, GPseconds, 0.0, after);
+				
+				// tetris-like legalization
+				LGseconds = tetrisLG(&nodes, chip);
+				
+				// compute the wirelegth
+				hpwl = HPWL(nodes, nets);
+				
+				// write the final results to file
+				writeResults(nodes, choice, filesFolder, GPseconds, LGseconds, hpwl);
+			}else{
+				// random initial positions for the nodes
+				GPseconds = randomGP(&nodes, chip);
+				
+				// compute the wirelegth for the initial random non legal placement
+				float before = HPWL(nodes, nets);
+				
+				// write the results to file
+				writeResults(nodes, choice, filesFolder, GPseconds, 0.0, before);
+				
+				// our simple global placement
+				GPseconds += ourPlacerGPtest(&nodes, nets, chip, 20000);
+				
+				// compute the wirelegth after our global non legal placement
+				float after = HPWL(nodes, nets);
+				
+				// write the results to file
+				writeResults(nodes, choice, filesFolder, GPseconds, 0.0, after);
+				
+				// tetris-like legalization
+				LGseconds = tetrisLG(&nodes, chip);
+				
+				// compute the wirelegth
+				hpwl = HPWL(nodes, nets);
+				
+				// write the final results to file
+				writeResults(nodes, choice, filesFolder, GPseconds, LGseconds, hpwl);
+			}
+			
 			
 			break;
 	}

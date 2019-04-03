@@ -116,6 +116,7 @@ void readNodes(char *fileName, nodes *nodes){
 	
 	int counter = 0;	// counter for the tokenization 
 	char *token;		// variable to keep the tokens
+	int flag = 0;		// flag
 
 	// open nodes file
 	fp = fopen(fileName, "r");
@@ -191,6 +192,11 @@ void readNodes(char *fileName, nodes *nodes){
 		//printf("%d\n", nodes->numberOfTerminals);
 	}
 	
+	// superblue circuits have 1 more empty line before nodes informations
+	if(strstr(fileName, "superblue") != NULL){
+		fgets(temp, 128, fp);
+	}
+	
 	// read all nodes sizes line by line
 	for(i = 0; i < nodes->numberOfNodes; i++){
 		// read the next whole line as string
@@ -231,15 +237,28 @@ void readNodes(char *fileName, nodes *nodes){
 					nodes->array[i].yLength = atoi(token);
 					break;
 			}
-
-			// check if node is terminal and set it
-			(i <= nodes->numberOfNodes - nodes->numberOfTerminals - 1) ? (nodes->array[i].terminal = 0) : (nodes->array[i].terminal = 1);
-			
-			// mark each node as non-placed
-			nodes->array[i].placed = 0;
 		}
+		
+		// check if node is terminal and set it
+		(i <= nodes->numberOfNodes - nodes->numberOfTerminals - 1) ? (nodes->array[i].terminal = 0) : (nodes->array[i].terminal = 1);
+		
+		// superblue circuits separate terminal node and NI terminals
+		if(strstr(fileName, "superblue") != NULL){
+			// set the number of non terminal NI nodes
+			if((nodes->array[i].name[0] == 'p') && (flag == 0)){
+				nodes->terminalsNI = i;
+				flag = 1;
+			}
+		}
+		
+		// set each node as non-placed
+		nodes->array[i].placed = 0;
+		
 		// set node connectivity to zero
-		nodes->array[i].connectivity = 0;
+		nodes->array[i].connectivity = 0.0;
+		
+		// set node id to -1
+		nodes->array[i].id = -1;
 		
 		// set node as not preplaced in the chip
 		nodes->array[i].preplaced = 0;
@@ -482,10 +501,15 @@ void readNets(char *fileName, nets *nets, nodes *nodes){
 	// read and pass the next line (NumPins)
 	fgets(temp, 128, fp);
 	
+	if(UL == 4){
+		// read and pass the next line (NumPins)
+		fgets(temp, 128, fp);	
+	}
+	
 	for(i = 0; i < nets->numberOfNets; i++){
 		// read the next whole line as string
 		fgets(temp, 128, fp);
-		
+
 		// resetting counter to 0
 		counter = 0;
 		
@@ -519,9 +543,9 @@ void readNets(char *fileName, nets *nets, nodes *nodes){
 		// creating the array of attributes for the net
 		nets->array[i].netNodesAttributes = malloc((nets->array[i].netDegree + 1) * sizeof(char));
 		nets->array[i].netNodesAttributes[nets->array[i].netDegree] = '\0';
-		
+
 		// initialize the two counters
-		counterI = counterO = 0;
+		//counterI = counterO = 0;
 		
 		for(j = 0; j < nets->array[i].netDegree; j++){
 			// read the next whole line as string
@@ -534,21 +558,33 @@ void readNets(char *fileName, nets *nets, nodes *nodes){
 			
 			// get the node j id of the net i (at this point we dont know if its terminal or not)
 			id = atoi(&token[1]);
-
-			// check if node its terminal or not
-			// then we add to the net i the id (index position in nodes array) of the node j
-			if(strcmp(nodes->array[id].name, token) == 0){	// node isnt terminal
-				nets->array[i].netNodes[j] = id;
-			}else if(strcmp(nodes->array[(nodes->numberOfNodes - nodes->numberOfTerminals - 1) + id].name, token) == 0){	// node is terminal
-				nets->array[i].netNodes[j] = (nodes->numberOfNodes - nodes->numberOfTerminals - 1) + id;
-			}
 			
+			// ibm circuits have terminal nodes with 'p' + id
+			if(strstr(fileName, "ibm") != NULL){
+				// check if node its terminal or not
+				// then we add to the net i the id (index position in nodes array) of the node j
+				if(strcmp(nodes->array[id].name, token) == 0){	// node isnt terminal
+					nets->array[i].netNodes[j] = id;
+				}else if(strcmp(nodes->array[(nodes->numberOfNodes - nodes->numberOfTerminals - 1) + id].name, token) == 0){	// node is terminal
+					nets->array[i].netNodes[j] = (nodes->numberOfNodes - nodes->numberOfTerminals - 1) + id;
+				}
+			}else{
+				// check if node its terminal or not
+				if(strcmp(nodes->array[id].name, token) == 0){
+					nets->array[i].netNodes[j] = id;
+					//printf("%s %s\n", nodes->array[id].name, token);
+				}else{
+					// if node its terminal NI
+					nets->array[i].netNodes[j] = nodes->terminalsNI + id;
+					//printf("NI %s %s REAL ID: %d\n", nodes->array[nodes->terminalsNI + id].name, token, nodes->terminalsNI);
+				}
+			}
+
 			// increase the connectivity of each node in the net
 			// since the net are fully connected, each node connect with all other nodes in the net
 			nodes->array[nets->array[i].netNodes[j]].connectivity += (nets->array[i].netDegree - 1);
 
-			//printf("%s %d\n", nodes->array[nets->array[i].netNodes[j]].name, nodes->array[nets->array[i].netNodes[j]].connectivity);
-			//getch();
+			//printf("%s %f\n", nodes->array[nets->array[i].netNodes[j]].name, nodes->array[nets->array[i].netNodes[j]].connectivity);
 			
 			/*
 			// taking the next token (indicates if node in INPUT or OUTPUT) 
