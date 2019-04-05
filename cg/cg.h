@@ -1,4 +1,7 @@
-int i4_min ( int i1, int i2 );
+#ifndef CG_H
+#define CG_H
+
+int i4_min ( int, int );
 double *orth_random ( int n, int *seed );
 double *pds_random ( int n, int *seed );
 double r8_normal_01 ( int *seed );
@@ -62,3 +65,5 @@ double *r8vec_uniform_01_new ( int n, int *seed );
 double *r8vec_zero_new ( int n );
 
 void timestamp ( );
+
+#endif // CG_H
