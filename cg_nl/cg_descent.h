@@ -99,6 +99,7 @@ SIAM Journal on Optimization, 23 (2013), 2150-2168. */
 #include <math.h>
 #include <float.h>
 #include <limits.h>
+#include "../parser.h"
 
 #ifndef CG_NO_STDLIB
 #include <stdlib.h>
@@ -444,11 +445,14 @@ CG_API int cg_descent /*  return:
 	 CG_FLOAT    grad_tol, /* StopRule = 1: |g|_infty <= max (grad_tol,
 														StopFac*initial |g|_infty) [default]
 														StopRule = 0: |g|_infty <= grad_tol(1+|f|) */
-	 CG_FLOAT (*value) (CG_FLOAT *, CG_INT CG_CUSTOM_ARGS),  /* f = value (x, n) */
-	 void     (*grad) (CG_FLOAT *, CG_FLOAT *, CG_INT CG_CUSTOM_ARGS), /* grad (g, x, n) */
+	 CG_FLOAT (*value) (nodes *, nets, chip, CG_FLOAT *, CG_INT CG_CUSTOM_ARGS),  /* f = value (x, n) */
+	 void     (*grad) (nodes *, nets, chip, CG_FLOAT *, CG_FLOAT *, CG_INT CG_CUSTOM_ARGS), /* grad (g, x, n) */
 	 CG_FLOAT (*valgrad) (CG_FLOAT *, CG_FLOAT *, CG_INT CG_CUSTOM_ARGS), /* f = valgrad (g,x,n)*/
 	 CG_FLOAT *Work  /* either size 4n work array or NULL */
-   CG_CUSTOM_ARGS
+   CG_CUSTOM_ARGS,
+   	 nodes *nodes,
+	 nets nets,
+	 chip chip
 ) ;
 
 CG_API void cg_default /* set default parameter values */
@@ -500,8 +504,8 @@ typedef struct cg_com_struct /* common variables */
 	CG_FLOAT          *d ; /* current search direction */
 	CG_FLOAT          *g ; /* gradient at x */
 	CG_FLOAT      *gtemp ; /* gradient at x + alpha*d */
-	CG_FLOAT   (*cg_value) (CG_FLOAT *, CG_INT CG_CUSTOM_ARGS) ; /* f = cg_value (x, n) */
-	void      (*cg_grad) (CG_FLOAT *, CG_FLOAT *, CG_INT CG_CUSTOM_ARGS) ; /* cg_grad (g, x, n) */
+	CG_FLOAT   (*cg_value) (nodes *, nets, chip, CG_FLOAT *, CG_INT CG_CUSTOM_ARGS) ; /* f = cg_value (x, n) */
+	void      (*cg_grad) (nodes *, nets, chip, CG_FLOAT *, CG_FLOAT *, CG_INT CG_CUSTOM_ARGS) ; /* cg_grad (g, x, n) */
 	CG_FLOAT (*cg_valgrad) (CG_FLOAT *, CG_FLOAT *, CG_INT CG_CUSTOM_ARGS) ; /* f = cg_valgrad (g,x,n)*/
 	cg_parameter *Parm ; /* user parameters */
   CG_CUSTOM_STRUCT
@@ -529,11 +533,17 @@ static int cg_tol
 
 static int cg_line
 (
+ nodes *nodes,
+ nets nets,
+ chip chip,
  cg_com   *Com  /* cg com structure */
 ) ;
 
 static int cg_contract
 (
+ nodes *nodes,
+ nets nets,
+ chip chip,
  CG_FLOAT    *A, /* left side of bracketing interval */
  CG_FLOAT   *fA, /* function value at a */
  CG_FLOAT   *dA, /* derivative at a */
@@ -557,6 +567,9 @@ typedef enum {
 
 static int cg_evaluate
 (
+ nodes *nodes,
+ nets nets,
+ chip chip,
  cg_evaluate_what what, /* fg = evaluate func and grad, g = grad only,f = func only*/
  cg_evaluate_nan   nan, /* y means check function/derivative values for nan */
  cg_com           *Com
@@ -759,7 +772,7 @@ int cg_descent /*  return status of solution process:
 										 10 (out of memory)
 										 11 (function nan or +-INF and could not be repaired)
 										 12 (invalid choice for memory parameter) */
-(
+(	
 	 CG_FLOAT          *x, /* input: starting guess, output: the solution */
 	 CG_INT             n, /* problem dimension */
 	 cg_stats       *Stat, /* structure with statistics (can be NULL) */
@@ -767,8 +780,8 @@ int cg_descent /*  return status of solution process:
 	 CG_FLOAT    grad_tol, /* StopRule = 1: |g|_infty <= max (grad_tol,
 														StopFac*initial |g|_infty) [default]
 														StopRule = 0: |g|_infty <= grad_tol(1+|f|) */
-	 CG_FLOAT      (*value) (CG_FLOAT *, CG_INT CG_CUSTOM_ARGS),  /* f = value (x, n) */
-	 void         (*grad) (CG_FLOAT *, CG_FLOAT *, CG_INT CG_CUSTOM_ARGS), /* grad (g, x, n) */
+	 CG_FLOAT      (*value) (nodes *, nets, chip, CG_FLOAT *, CG_INT CG_CUSTOM_ARGS),  /* f = value (x, n) */
+	 void         (*grad) (nodes *, nets, chip, CG_FLOAT *, CG_FLOAT *, CG_INT CG_CUSTOM_ARGS), /* grad (g, x, n) */
 	 CG_FLOAT    (*valgrad) (CG_FLOAT *, CG_FLOAT *, CG_INT CG_CUSTOM_ARGS), /* f = valgrad (g, x, n),
 																											NULL = compute value & gradient using value & grad */
 	 CG_FLOAT         *Work  /* NULL => let code allocate memory
@@ -778,7 +791,10 @@ int cg_descent /*  return status of solution process:
 														memory > 0 => need (mem+6)*n + (3*mem+9)*mem + 5
 														where mem = MIN(memory, n)
 														memory = 0 => need 4*n */
-   CG_CUSTOM_ARGS
+   CG_CUSTOM_ARGS,
+   	 nodes *nodes,
+	 nets nets,
+	 chip chip
 )
 {
 	CG_INT     i, iter, IterRestart, maxit = 0, nrestart, nrestartsub = 0;
@@ -806,7 +822,9 @@ int cg_descent /*  return status of solution process:
 
 	cg_parameter *Parm, ParmStruc ;
 	cg_com Com ;
-
+	double s = 0.25;	// step size
+	double sum;			// temporary sum
+	
 	/* assign values to the external variables */
 	one [0] = (double) 1 ;
 	zero [0] = (double) 0 ;
@@ -941,7 +959,7 @@ int cg_descent /*  return status of solution process:
 
 	/* initial function and gradient evaluations, initial direction */
 	Com.alpha = 0 ;
-	status = cg_evaluate (CG_EVALUATE_WHAT_FG, CG_EVALUATE_NAN_N, &Com) ;
+	status = cg_evaluate (*(&nodes), nets, chip, CG_EVALUATE_WHAT_FG, CG_EVALUATE_NAN_N, &Com) ;
 	f = Com.f ;
 	if ( status )
 	{
@@ -1006,14 +1024,21 @@ int cg_descent /*  return status of solution process:
 	scale = (double) 1 ; /* scale is the initial approximation to inverse
 													Hessian in LBFGS; after the initial iteration,
 													scale is estimated by the BB formula */
+													
+
 
 	/* Start the conjugate gradient iteration.
 		 alpha starts as old step, ends as final step for current iteration
 		 f is function value for alpha = 0
 		 QuadOK = CG_TRUE means that a quadratic step was taken */
 
-	for (iter = 1; iter <= maxit; iter++)
+	//printf("%d", maxit);
+	//getch();
+	//maxit = 5000;
+	//((maxit > 50) ? 50 : maxit)
+	for (iter = 1; iter <= ((maxit > 2) ? 2 : maxit); iter++)
 	{
+		//printf("%d\n", iter);
 		/* save old alpha to simplify formula computing subspace direction */
 		alphaold = alpha ;
 		Com.QuadOK = CG_FALSE ;
@@ -1030,7 +1055,7 @@ int cg_descent /*  return status of solution process:
 				if ( QuadF )
 				{
 					Com.alpha = Parm->psi1*alpha ;
-					status = cg_evaluate (CG_EVALUATE_WHAT_G, CG_EVALUATE_NAN_Y, &Com) ;
+					status = cg_evaluate (*(&nodes), nets, chip,CG_EVALUATE_WHAT_G, CG_EVALUATE_NAN_Y, &Com) ;
 					if ( status ) goto Exit ;
 					if ( Com.df > dphi0 )
 					{
@@ -1060,7 +1085,7 @@ int cg_descent /*  return status of solution process:
 				{
 					t = CG_MAX (Parm->psi_lo, Com.df0/(dphi0*Parm->psi2)) ;
 					Com.alpha = CG_MIN (t, Parm->psi_hi)*alpha ;
-					status = cg_evaluate (CG_EVALUATE_WHAT_F, CG_EVALUATE_NAN_Y, &Com) ;
+					status = cg_evaluate (*(&nodes), nets, chip,CG_EVALUATE_WHAT_F, CG_EVALUATE_NAN_Y, &Com) ;
 					if ( status ) goto Exit ;
 					ftemp = Com.f ;
 					denom = 2.*(((ftemp-f)/Com.alpha)-dphi0) ;
@@ -1110,8 +1135,24 @@ int cg_descent /*  return status of solution process:
 		Com.alpha = alpha ;
 
 		/* perform line search */
-		status = cg_line (&Com) ;
+		status = cg_line (*(&nodes), nets, chip, &Com) ;
+		
+		/*
+		// close line search
+		status = 0;
+		
+		// calculate the dynamic step
+		sum = 0.0;
+		for(i = 0; i < n; i++){
+			sum += pow(d[i], 2);
+		}
+		sum = sqrt(sum);
 
+		if(sum != 0.0){
+			Parm->step = Com.alpha = (double) (s * 10.0) / sum;
+		}
+		*/
+		
 		/*try approximate Wolfe line search if ordinary Wolfe fails */
 		if ( (status > 0) && !Com.AWolfe )
 		{
@@ -1122,7 +1163,7 @@ int cg_descent /*  return status of solution process:
 			if ( status != 3 )
 			{
 				Com.AWolfe = CG_TRUE ;
-				status = cg_line (&Com) ;
+				status = cg_line (*(&nodes), nets, chip, &Com) ;
 			}
 		}
 
@@ -2376,6 +2417,9 @@ static int cg_tol
    ========================================================================= */
 static int cg_line
 (
+ nodes *nodes,
+ nets nets,
+ chip chip,
  cg_com   *Com /* cg com structure */
 )
 {
@@ -2405,14 +2449,14 @@ static int cg_line
 	/* evaluate function or gradient at Com->alpha (starting guess) */
 	if ( Com->QuadOK )
 	{
-		status = cg_evaluate (CG_EVALUATE_WHAT_FG, CG_EVALUATE_NAN_Y, Com) ;
+		status = cg_evaluate (*(&nodes), nets, chip, CG_EVALUATE_WHAT_FG, CG_EVALUATE_NAN_Y, Com) ;
 		fb = Com->f ;
 		if ( !AWolfe ) fb -= Com->alpha*Com->wolfe_hi ;
 		qb = CG_TRUE ; /* function value at b known */
 	}
 	else
 	{
-		status = cg_evaluate (CG_EVALUATE_WHAT_G, CG_EVALUATE_NAN_Y, Com) ;
+		status = cg_evaluate (*(&nodes), nets, chip,CG_EVALUATE_WHAT_G, CG_EVALUATE_NAN_Y, Com) ;
 		qb = CG_FALSE ;
 	}
 	if ( status ) return (status) ; /* function is undefined */
@@ -2461,7 +2505,7 @@ static int cg_line
 	{
 		if ( !qb )
 		{
-			status = cg_evaluate (CG_EVALUATE_WHAT_F, CG_EVALUATE_NAN_N, Com) ;
+			status = cg_evaluate (*(&nodes), nets, chip,CG_EVALUATE_WHAT_F, CG_EVALUATE_NAN_N, Com) ;
 			if ( status ) return (status) ;
 			if ( AWolfe ) fb = Com->f ;
 			else          fb = Com->f - b*Com->wolfe_hi ;
@@ -2469,7 +2513,7 @@ static int cg_line
 		}
 		if ( fb > Com->fpert ) /* contract interval [a, b] */
 		{
-			status = cg_contract (&a, &fa, &da, &b, &fb, &db, Com) ;
+			status = cg_contract (*(&nodes), nets, chip, &a, &fa, &da, &b, &fb, &db, Com) ;
 			if ( status == 0 ) return (0) ;   /* Wolfe conditions hold */
 			if ( status == -2 ) goto Line ; /* db >= 0 */
 			if ( Com->neps > Parm->neps ) return (6) ;
@@ -2519,7 +2563,7 @@ static int cg_line
 		b = CG_MAX (bmin, b) ;
 		Com->alphaold = Com->alpha ;
 		Com->alpha = b ;
-		status = cg_evaluate (CG_EVALUATE_WHAT_G, CG_EVALUATE_NAN_P, Com) ;
+		status = cg_evaluate (*(&nodes), nets, chip,CG_EVALUATE_WHAT_G, CG_EVALUATE_NAN_P, Com) ;
 		if ( status ) return (status) ;
 		b = Com->alpha ;
 		qb = CG_FALSE ;
@@ -2656,7 +2700,7 @@ Line:
 		if ( toggle > 2 ) toggle = 0 ;
 
 		Com->alpha = alpha ;
-		status = cg_evaluate (CG_EVALUATE_WHAT_FG, CG_EVALUATE_NAN_N, Com) ;
+		status = cg_evaluate (*(&nodes), nets, chip,CG_EVALUATE_WHAT_FG, CG_EVALUATE_NAN_N, Com) ;
 		if ( status ) return (status) ;
 		Com->alpha = alpha ;
 		f = Com->f ;
@@ -2700,7 +2744,7 @@ Line:
 			fb = f ;
 			db = df ;
 			/* contract interval [a, alpha] */
-			status = cg_contract (&a, &fa, &da, &b, &fb, &db, Com) ;
+			status = cg_contract (*(&nodes), nets, chip, &a, &fa, &da, &b, &fb, &db, Com) ;
 			if ( status == 0 ) return (0) ;
 			if ( status == -1 ) /* eps reduced, use [a, b] = [alpha, b] */
 			{
@@ -2742,6 +2786,9 @@ Line:
    ========================================================================= */
 static int cg_contract
 (
+ nodes *nodes,
+ nets nets,
+ chip chip,
  CG_FLOAT    *A, /* left side of bracketing interval */
  CG_FLOAT   *fA, /* function value at a */
  CG_FLOAT   *dA, /* derivative at a */
@@ -2808,7 +2855,7 @@ static int cg_contract
 		if ( toggle > 2 ) toggle = 0 ;
 
 		Com->alpha = alpha ;
-		status = cg_evaluate (CG_EVALUATE_WHAT_FG, CG_EVALUATE_NAN_N, Com) ;
+		status = cg_evaluate (*(&nodes), nets, chip,CG_EVALUATE_WHAT_FG, CG_EVALUATE_NAN_N, Com) ;
 		if ( status ) return (status) ;
 		f = Com->f ;
 		df = Com->df ;
@@ -2895,6 +2942,9 @@ static int cg_contract
 
 static int cg_evaluate
 (
+ nodes *nodes,
+ nets nets,
+ chip chip,
  cg_evaluate_what what, /* fg = evaluate func and grad, g = grad only,f = func only*/
  cg_evaluate_nan   nan, /* y means check function/derivative values for nan */
  cg_com           *Com
@@ -2911,6 +2961,7 @@ static int cg_evaluate
 	xtemp = Com->xtemp ;
 	gtemp = Com->gtemp ;
 	alpha = Com->alpha ;
+	
 	/* check to see if values are nan */
 	if ( nan == CG_EVALUATE_NAN_Y || nan == CG_EVALUATE_NAN_P )
 	{
@@ -2918,7 +2969,7 @@ static int cg_evaluate
 		{
 			cg_step (xtemp, x, d, alpha, n) ;
 			/* provisional function value */
-			Com->f = Com->cg_value (xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
+			Com->f = Com->cg_value (*(&nodes), nets, chip, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
 			Com->nf++ ;
 
 			/* reduce stepsize if function value is nan */
@@ -2935,7 +2986,7 @@ static int cg_evaluate
 						alpha *= Parm->nan_decay ;
 					}
 					cg_step (xtemp, x, d, alpha, n) ;
-					Com->f = Com->cg_value (xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
+					Com->f = Com->cg_value (*(&nodes), nets, chip, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
 					Com->nf++ ;
 					if ( (Com->f == Com->f) && (Com->f < CG_FLOAT_INF) &&
 							(Com->f > -CG_FLOAT_INF) ) break ;
@@ -2947,7 +2998,7 @@ static int cg_evaluate
 		else if ( what == CG_EVALUATE_WHAT_G ) /* compute gradient */
 		{
 			cg_step (xtemp, x, d, alpha, n) ;
-			Com->cg_grad (gtemp, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
+			Com->cg_grad (*(&nodes), nets, chip, gtemp, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
 			Com->ng++ ;
 			Com->df = cg_dot (gtemp, d, n) ;
 			/* reduce stepsize if derivative is nan */
@@ -2964,7 +3015,7 @@ static int cg_evaluate
 						alpha *= Parm->nan_decay ;
 					}
 					cg_step (xtemp, x, d, alpha, n) ;
-					Com->cg_grad (gtemp, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
+					Com->cg_grad (*(&nodes), nets, chip, gtemp, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
 					Com->ng++ ;
 					Com->df = cg_dot (gtemp, d, n) ;
 					if ( (Com->df == Com->df) && (Com->df < CG_FLOAT_INF) &&
@@ -2978,6 +3029,7 @@ static int cg_evaluate
 		}
 		else                            /* compute function and gradient */
 		{
+
 			cg_step (xtemp, x, d, alpha, n) ;
 			if ( Com->cg_valgrad != NULL )
 			{
@@ -2985,8 +3037,8 @@ static int cg_evaluate
 			}
 			else
 			{
-				Com->cg_grad (gtemp, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
-				Com->f = Com->cg_value (xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
+				Com->cg_grad (*(&nodes), nets, chip, gtemp, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
+				Com->f = Com->cg_value (*(&nodes), nets, chip, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
 			}
 			Com->df = cg_dot (gtemp, d, n) ;
 			Com->nf++ ;
@@ -3013,8 +3065,8 @@ static int cg_evaluate
 					}
 					else
 					{
-						Com->cg_grad (gtemp, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
-						Com->f = Com->cg_value (xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
+						Com->cg_grad (*(&nodes), nets, chip, gtemp, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
+						Com->f = Com->cg_value (*(&nodes), nets, chip, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
 					}
 					Com->df = cg_dot (gtemp, d, n) ;
 					Com->nf++ ;
@@ -3045,8 +3097,8 @@ static int cg_evaluate
 				}
 				else
 				{
-					Com->cg_grad (Com->g, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
-					Com->f = Com->cg_value (xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
+					Com->cg_grad (*(&nodes), nets, chip, Com->g, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
+					Com->f = Com->cg_value (*(&nodes), nets, chip, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
 				}
 			}
 			else
@@ -3058,8 +3110,8 @@ static int cg_evaluate
 				}
 				else
 				{
-					Com->cg_grad (gtemp, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
-					Com->f = Com->cg_value (xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
+					Com->cg_grad (*(&nodes), nets, chip, gtemp, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
+					Com->f = Com->cg_value (*(&nodes), nets, chip, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
 				}
 				Com->df = cg_dot (gtemp, d, n) ;
 			}
@@ -3072,7 +3124,7 @@ static int cg_evaluate
 		else if ( what == CG_EVALUATE_WHAT_F ) /* compute function */
 		{
 			cg_step (xtemp, x, d, alpha, n) ;
-			Com->f = Com->cg_value (xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
+			Com->f = Com->cg_value (*(&nodes), nets, chip, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
 			Com->nf++ ;
 			if ( (Com->f != Com->f) || (Com->f == CG_FLOAT_INF) || (Com->f ==-CG_FLOAT_INF) )
 				return (11) ;
@@ -3080,7 +3132,7 @@ static int cg_evaluate
 		else
 		{
 			cg_step (xtemp, x, d, alpha, n) ;
-			Com->cg_grad (gtemp, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
+			Com->cg_grad (*(&nodes), nets, chip, gtemp, xtemp, n CG_CUSTOM_ARGUMENT(Com)) ;
 			Com->df = cg_dot (gtemp, d, n) ;
 			Com->ng++ ;
 			if ( (Com->df != Com->df) || (Com->df == CG_FLOAT_INF) || (Com->df ==-CG_FLOAT_INF) )
