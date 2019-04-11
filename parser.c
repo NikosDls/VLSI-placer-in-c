@@ -439,6 +439,13 @@ void readChip(char *fileName, chip *chip){
 		fgets(temp, 128, fp);
 	}
 	
+	// calculate average chip width
+	double sum = 0.0;
+	for(i = 0; i < chip->numberOfRows; i++){
+		sum += chip->array[i].width;
+	}
+	chip->averageWidth = (double) sum / chip->numberOfRows;
+	
 	return;	// successful return of readChip
 }
 

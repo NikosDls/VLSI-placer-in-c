@@ -10,6 +10,9 @@
 // find maximum between two numbers
 #define max(x,y) ((x) >= (y)) ? (x) : (y)
 
+// type of minimization
+int type;	// 1: Non-linear minimization with density constaints and 2: Simple non-linear minimization 
+
 // hypergraph level 
 typedef struct level{
 	int blockNumber;	// total number of nodes in the level
@@ -59,14 +62,14 @@ void quickSortC(nodes, int [], int, int);
 
 void calculateMbPb(int, int, binGrids *, chip);
 void calculateDb(int, int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes);
-void DbGradientX(int, int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes, double *);
-void DbGradientY(int, int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes, double *);
+void DbGradientX(int, int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes, int, double **);
+void DbGradientY(int, int, binGrids *, hypergraph, int, nodes, connectivitySortedNodes, int, double **);
 
 double W(nodes, nets, chip);
 void wGradientX(nodes, nets, chip, double *);
 void wGradientY(nodes, nets, chip, double *);
 
-float ourPlacerGP(nodes, nets, chip, int, int);
+float ourPlacerGP(nodes, nets, chip, int, double);
 
 double myvalue(nodes *, nets, chip, double *, CG_INT);
 void mygrad(nodes *, nets, chip, double *, double *, CG_INT);

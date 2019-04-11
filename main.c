@@ -11,6 +11,9 @@
 #include "hpwl.h"
 #include "ourPlacer.h"
 #include "writeResults.h"
+#include "cg\cg.h"
+#include "cg_nl\cg_descent.h"
+#include "ourCG.h"
 
 // executable files (.c) can be excluded if
 // we compile the programm like gcc main.c (all .c files) -o placer
@@ -22,6 +25,7 @@
 #include "ourPlacer.c"
 #include "writeResults.c"
 #include "cg\cg.c"
+#include "ourCG.c"
 
 int main(){
 	//nodes e;
@@ -36,13 +40,13 @@ int main(){
 	int cellHeight, chipHeight;		// temporary height to check if we have standard or mix size cells and preplaced cells in the chip
 	int temp = 0;	// temporary variable to initialize first values, for the check
 	
- 	int choice;		// user choice about placement algorithm
+ 	int choice;	// user choice about placement algorithm and type
 	
 	int i, j, w, k;	// counters for the loops
 	int markFromY, markUntilY;			// variables to set the chip area as not available, where the preplaced nodes is
 	int markFromX, markUntilX;			// variables to set the chip area as not available, where the preplaced nodes is
-	int unavailableArea = 0, total = 0;	// area of terminal nodes in the chip and total chip area
-	int totalMovableArea;				// total movable area of the chip
+	double unavailableArea = 0.0, total = 0.0;	// area of terminal nodes in the chip and total chip area
+	double totalMovableArea;					// total movable area of the chip
 	
 	// placer variables
 	int s;	// s is 1 when we do simple minimiation otherwise 0
@@ -235,9 +239,9 @@ int main(){
 	
 	// print the chip informations
 	printf("\n\n----------------------------------------");
-	printf("\nCHIP TOTAL AREA         : %d", total);
-	printf("\nCHIP NOT AVAILABLE AREA : %d", unavailableArea);
-	printf("\nCHIP AVAILABLE AREA     : %d", totalMovableArea);
+	printf("\nCHIP TOTAL AREA         : %.0lf", total);
+	printf("\nCHIP NOT AVAILABLE AREA : %.0lf", unavailableArea);
+	printf("\nCHIP AVAILABLE AREA     : %.0lf", totalMovableArea);
 	if(unavailableArea != 0){
 		printf("\n\nSO THE %.2lf%% OF THE TOTAL CHIP AREA IS UNAVAILABLE", ((double) unavailableArea / total) * 100);
 	}
@@ -348,10 +352,24 @@ int main(){
 			break;
 			
 		case 3:	// our placer
-			s = 0;	// do minimization with density constraints
-			//s = 1;	// do simple minimization
+			// print the menu
+			printf("\n1. Non-linear minimization with density constaints"
+		   		   "\n2. Simple non-linear minimization\n\n");
+		   		   
+			// read the users choice
+			do{
+				fflush(stdin);
+				printf("Type: ");
+				scanf("%d", &type);
+			}while(type < 1 || type > 2);
 			
-			if(s == 0){
+			//type = 1;	// do minimization with density constraints
+			//type = 2;	// do simple minimization
+			
+			if(type == 1){
+				// random initial positions for the nodes
+				GPseconds = randomGP(&nodes, chip);
+				
 				// our global placement with density constraints
 				ourPlacerGP(nodes, nets, chip, 6000, totalMovableArea);
 				
@@ -399,7 +417,6 @@ int main(){
 				// write the final results to file
 				writeResults(nodes, choice, filesFolder, GPseconds, LGseconds, hpwl);
 			}
-			
 			
 			break;
 	}

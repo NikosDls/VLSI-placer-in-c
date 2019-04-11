@@ -12,10 +12,8 @@
 #define CG_DESCENT_IMPLEMENTATION
 #include "cg_nl/cg_descent.h"
 
-double averageWidth;
-
 void createH0(hypergraph *H, int numberOfNodes){
-	// create the first level of hypergraph
+	// creating the first level of hypergraph
 	H->array = malloc(sizeof(level));
 		
 	// initially the first level of graph have all nodes
@@ -209,7 +207,7 @@ void calculateMbPb(int horizontally, int vertically, binGrids *B, chip chip){
 	int j, w, k;	// counter for the loops
 	int xCounter, yCounter;		// counters to calculate Pb
 	
-	// initialize the center, Db, Mb and Pb for each bin
+	// initialize the center, Mb and Pb for each bin
 	for(j = 0; j < vertically; j++){
 		for(w = 0; w < horizontally; w++){
 			if(w == (horizontally - 1)){
@@ -225,7 +223,6 @@ void calculateMbPb(int horizontally, int vertically, binGrids *B, chip chip){
 			}
 			//printf("%lf %lf\t", B->array[j][w].xCenter, B->array[j][w].yCenter);
 			
-			B->array[j][w].Db = 0;
 			B->array[j][w].Mb = 0;
 			B->array[j][w].Pb = 0;
 		}
@@ -283,6 +280,13 @@ void calculateDb(int horizontally, int vertically, binGrids *B, hypergraph H, in
 	double dx, dy;					// center (of node) to center (of bin) distance, in x and y directions
 	double px, py, ax, bx, ay, by;	// variables to calculate Db
 	
+	// initialize Db for each bin to zero
+	for(j = 0; j < vertically; j++){
+		for(w = 0; w < horizontally; w++){
+			B->array[j][w].Db = 0;
+		}
+	}
+	
 	for(k = 0; k < H.array[i].blockNumber; k++){
 		// calculate ax
 		ax = (double) 4 / ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 2 * B->wb) * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 4 * B->wb));
@@ -321,7 +325,7 @@ void calculateDb(int horizontally, int vertically, binGrids *B, hypergraph H, in
 				dy = fabs(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yCenter - B->array[j][w].yCenter);
 				
 				if((dy >= 0) && 
-				   (dy <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B->wb))){
+					(dy <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B->wb))){
 	
 					// calculate py
 					py = 1 - ay * pow(dy, 2);				
@@ -337,7 +341,7 @@ void calculateDb(int horizontally, int vertically, binGrids *B, hypergraph H, in
 				
 				// calculate Db for the bin (j,w) and node k
 				B->array[j][w].Db += nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength
-									 * nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength
+									 * nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength
 									 * px * py; 
 				
 				/*
@@ -354,156 +358,150 @@ void calculateDb(int horizontally, int vertically, binGrids *B, hypergraph H, in
 	return;	// successful return of calculateDb
 }
 
-void DbGradientX(int horizontally, int vertically, binGrids *B, hypergraph H, int i, nodes nodes, connectivitySortedNodes sortedNodes, double *gradient){
-	int j, w, k;	// counter for the loops
+void DbGradientX(int horizontally, int vertically, binGrids *B, hypergraph H, int i, nodes nodes, connectivitySortedNodes sortedNodes, int k, double **gradient){
+	int j, w;	// counter for the loops
 	int xCounter, yCounter;			// counters to calculate Pb
 	double dx, dy;					// center (of node) to center (of bin) distance, in x and y directions
 	double px, py, ax, bx, ay, by;	// variables to calculate Db
-	
-	// initialize gradient vector to zero
-	for(j = 0; j < H.array[i].blockNumber; j++){
-		gradient[j] = 0;
-	}
-	
-	for(k = 0; k < H.array[i].blockNumber; k++){
-		// calculate ax
-		ax = (double) 4 / ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 2 * B->wb) * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 4 * B->wb));
-	
-		// calculate bx
-		bx = (double) 2 / (B->wb * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 4 * B->wb));
-			
-		// calculate ay
-		ay = (double) 4 / ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 2 * B->wb) * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 4 * B->wb));
-				
-		// calculate by
-		by = (double) 2 / (B->wb * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 4 * B->wb));
-					
-		// calculate Db gradient for each bin
-		for(j = 0; j < vertically; j++){
-			for(w = 0; w < horizontally; w++){
-				// calculate center to center distance in x direction
-				dx = fabs(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xCenter - B->array[j][w].xCenter);
-				
-				if((dx >= 0) && 
-				   (dx <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + B->wb))){
-					
-					// calculate px
-					px = -2 * ax * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xCenter - B->array[j][w].xCenter);				
-				}else if((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + B->wb) <= dx) &&
-						   (dx <= (((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + 2 * B->wb)))){
 
-					// calculate px
-					if(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xCenter > B->array[j][w].xCenter){
-						px = 2 * bx * (dx - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) - (2 * B->wb));
-					}else{
-						px = -2 * bx * (dx - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) - (2 * B->wb));
-					}	
-				}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + 2 * B->wb))) <= dx){
-					// calculate px
-					px = 0;
+	// calculate ax
+	ax = (double) 4 / ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 2 * B->wb) * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 4 * B->wb));
+
+	// calculate bx
+	bx = (double) 2 / (B->wb * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 4 * B->wb));
+		
+	// calculate ay
+	ay = (double) 4 / ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 2 * B->wb) * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 4 * B->wb));
+			
+	// calculate by
+	by = (double) 2 / (B->wb * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 4 * B->wb));
+				
+	// calculate Db gradient for each bin
+	for(j = 0; j < vertically; j++){
+		for(w = 0; w < horizontally; w++){
+			// calculate center to center distance in x direction
+			dx = fabs(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xCenter - B->array[j][w].xCenter);
+			
+			if((dx >= 0) && 
+			   (dx <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + B->wb))){
+				
+				// calculate px
+				if(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xCenter > B->array[j][w].xCenter){
+					px = -2 * ax * dx;
+				}else{
+					px = 2 * ax * dx;
 				}
+			}else if((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + B->wb) <= dx) &&
+					   (dx <= (((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + 2 * B->wb)))){
 				
-				// calculate center to center distance in y direction
-				dy = fabs(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yCenter - B->array[j][w].yCenter);
-				
-				if((dy >= 0) && 
-				   (dy <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B->wb))){
-					
-					// calculate py
-					py = 1 - ay * pow(dy, 2);				
-				}else if((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B->wb) <= dy) &&
-						   (dy <= (((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + 2 * B->wb)))){					
-					
-					// calculate py
-					py = by * pow(dy - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) - (2 * B->wb), 2);		
-				}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + 2 * B->wb))) <= dy){
-					// calculate py
-					py = 0;
-				}
-				
-				// calculate Db gradient for the bin (j,w) and node k
-				gradient[k] += nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength
-								* nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength
-								* px * py;		
+				// calculate px
+				if(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xCenter > B->array[j][w].xCenter){
+					px = 2 * bx * (dx - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) - (2 * B->wb));
+				}else{
+					px = -2 * bx * (dx - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) - (2 * B->wb));
+				}	
+			}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + 2 * B->wb))) <= dx){
+				// calculate px
+				px = 0;
 			}
+			
+			// calculate center to center distance in y direction
+			dy = fabs(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yCenter - B->array[j][w].yCenter);
+			
+			if((dy >= 0) && 
+				(dy <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B->wb))){
+				
+				// calculate py
+				py = 1 - ay * pow(dy, 2);				
+			}else if((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B->wb) <= dy) &&
+					   (dy <= (((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + 2 * B->wb)))){					
+				
+				// calculate py
+				py = by * pow(dy - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) - (2 * B->wb), 2);		
+			}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + 2 * B->wb))) <= dy){
+				// calculate py
+				py = 0;
+			}
+			
+			// calculate Db gradient for the bin (j,w) and node k
+			gradient[j][w] = nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength
+							* nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength
+							* px * py;		
 		}
 	}
 
 	return;	// successful return of DbGradientX
 }
 
-void DbGradientY(int horizontally, int vertically, binGrids *B, hypergraph H, int i, nodes nodes, connectivitySortedNodes sortedNodes, double *gradient){
-	int j, w, k;	// counter for the loops
+void DbGradientY(int horizontally, int vertically, binGrids *B, hypergraph H, int i, nodes nodes, connectivitySortedNodes sortedNodes, int k, double **gradient){
+	int j, w;	// counter for the loops
 	int xCounter, yCounter;			// counters to calculate Pb
 	double dx, dy;					// center (of node) to center (of bin) distance, in x and y directions
 	double px, py, ax, bx, ay, by;	// variables to calculate Db
 	
-	// initialize gradient vector to zero
-	for(j = 0; j < H.array[i].blockNumber; j++){
-		gradient[j] = 0;
-	}
+	// calculate ax
+	ax = (double) 4 / ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 2 * B->wb) * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 4 * B->wb));
+
+	// calculate bx
+	bx = (double) 2 / (B->wb * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 4 * B->wb));
 		
-	for(k = 0; k < H.array[i].blockNumber; k++){
-		// calculate ax
-		ax = (double) 4 / ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 2 * B->wb) * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 4 * B->wb));
-	
-		// calculate bx
-		bx = (double) 2 / (B->wb * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength + 4 * B->wb));
+	// calculate ay
+	ay = (double) 4 / ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 2 * B->wb) * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 4 * B->wb));
 			
-		// calculate ay
-		ay = (double) 4 / ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 2 * B->wb) * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 4 * B->wb));
+	// calculate by
+	by = (double) 2 / (B->wb * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 4 * B->wb));
 				
-		// calculate by
-		by = (double) 2 / (B->wb * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength + 4 * B->wb));
-					
-		// calculate Db gradient for each bin
-		for(j = 0; j < vertically; j++){
-			for(w = 0; w < horizontally; w++){
-				// calculate center to center distance in x direction
-				dx = fabs(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xCenter - B->array[j][w].xCenter);
+	// calculate Db gradient for each bin
+	for(j = 0; j < vertically; j++){
+		for(w = 0; w < horizontally; w++){
+			// calculate center to center distance in x direction
+			dx = fabs(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xCenter - B->array[j][w].xCenter);
+			
+			if((dx >= 0) && 
+			   (dx <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + B->wb))){
 				
-				if((dx >= 0) && 
-				   (dx <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + B->wb))){
-					
-					// calculate px
-					px = 1 - ax * pow(dx, 2);				
-				}else if((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + B->wb) <= dx) &&
-						   (dx <= (((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + 2 * B->wb)))){
-					
-					// calculate px
-					px = bx * pow(dx - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) - (2 * B->wb), 2);		
-				}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + 2 * B->wb))) <= dx){
-					// calculate px
-					px = 0;
-				}
+				// calculate px
+				px = 1 - ax * pow(dx, 2);				
+			}else if((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + B->wb) <= dx) &&
+					   (dx <= (((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + 2 * B->wb)))){
 				
-				// calculate center to center distance in y direction
-				dy = fabs(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yCenter - B->array[j][w].yCenter);
-				
-				if((dy >= 0) && 
-				   (dy <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B->wb))){
-					
-					// calculate py
-					py = -2 * ay * (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yCenter - B->array[j][w].yCenter);				
-				}else if((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B->wb) <= dy) &&
-						   (dy <= (((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + 2 * B->wb)))){					
-					
-					// calculate py
-					if(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yCenter > B->array[j][w].yCenter){
-						py = 2 * by * (dy - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) - (2 * B->wb));
-					}else{
-						py = -2 * by * (dy - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) - (2 * B->wb));
-					}		
-				}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + 2 * B->wb))) <= dy){
-					// calculate py
-					py = 0;
-				}
-				
-				// calculate Db gradient for the bin (j,w) and node k
-				gradient[k] += nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength
-								* nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength
-								* px * py;		
+				// calculate px
+				px = bx * pow(dx - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) - (2 * B->wb), 2);		
+			}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength / 2) + 2 * B->wb))) <= dx){
+				// calculate px
+				px = 0;
 			}
+			
+			// calculate center to center distance in y direction
+			dy = fabs(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yCenter - B->array[j][w].yCenter);
+			
+			if((dy >= 0) && 
+				(dy <= ((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B->wb))){
+				
+				// calculate py
+				if(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yCenter > B->array[j][w].yCenter){
+					py = -2 * ay * dy;
+				}else{
+					py = 2 * ay * dy;					
+				}
+			}else if((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + B->wb) <= dy) &&
+					   (dy <= (((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + 2 * B->wb)))){					
+				
+				// calculate py
+				if(nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yCenter > B->array[j][w].yCenter){
+					py = 2 * by * (dy - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) - (2 * B->wb));
+				}else{
+					py = -2 * by * (dy - (nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) - (2 * B->wb));
+				}		
+			}else if(((((nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength / 2) + 2 * B->wb))) <= dy){
+				// calculate py
+				py = 0;
+			}
+			
+			// calculate Db gradient for the bin (j,w) and node k
+			gradient[j][w] = nodes.array[sortedNodes.array[H.array[i].range[0] + k]].xLength
+							* nodes.array[sortedNodes.array[H.array[i].range[0] + k]].yLength
+							* px * py;		
 		}
 	}
 
@@ -517,7 +515,7 @@ double W(nodes nodes, nets nets, chip chip){
 	double logxk, log_xk, logyk, log_yk;	// temporary variables for the wirelength calculation
 	
 	// g have the value of the 1% of the chip width
-	g = 0.01 * averageWidth;
+	g = 0.01 * chip.averageWidth;
 
 	// calculate wire length for each net
 	// with log-sum-exp model
@@ -526,11 +524,20 @@ double W(nodes nodes, nets nets, chip chip){
 		logxk = log_xk = logyk = log_yk = 0.0;
 
 		for(j = 0; j < nets.array[i].netDegree; j++){
-			// calculate the sum of four paramater for each net
-			logxk  += exp((double) nodes.array[nets.array[i].netNodes[j]].x / g);
-			log_xk += exp((double) -nodes.array[nets.array[i].netNodes[j]].x / g);
-			logyk  += exp((double) nodes.array[nets.array[i].netNodes[j]].y / g);
-			log_yk += exp((double) -nodes.array[nets.array[i].netNodes[j]].y / g);
+			if(type == 1){
+				// calculate the sum of four paramater for each net
+				logxk  += exp((double) nodes.array[nets.array[i].netNodes[j]].xCenter / g);
+				log_xk += exp((double) -nodes.array[nets.array[i].netNodes[j]].xCenter / g);
+				logyk  += exp((double) nodes.array[nets.array[i].netNodes[j]].yCenter / g);
+				log_yk += exp((double) -nodes.array[nets.array[i].netNodes[j]].yCenter / g);	
+			}else{
+				// calculate the sum of four paramater for each net
+				logxk  += exp((double) nodes.array[nets.array[i].netNodes[j]].x / g);
+				log_xk += exp((double) -nodes.array[nets.array[i].netNodes[j]].x / g);
+				logyk  += exp((double) nodes.array[nets.array[i].netNodes[j]].y / g);
+				log_yk += exp((double) -nodes.array[nets.array[i].netNodes[j]].y / g);	
+			}
+			
 			/*
 			printf("e^(%.2f / %.2lf) = %.20lf\n"
 				   "e^(%.2f / %.2lf) = %.20lf\n"
@@ -569,7 +576,7 @@ double PDxW(nodes nodes, nets nets, chip chip, char *nodeName){
 	double sumSubDelta = 0.0, sumAddDelta = 0.0;	// x - delta and x + delta sum
 	
 	// g have the value of the 1% of the chip width
-	g = 0.01 * averageWidth;
+	g = 0.01 * chip.averageWidth;
 
 	// calculate wire length for each net
 	// with log-sum-exp model
@@ -639,7 +646,7 @@ void wGradientX(nodes nodes, nets nets, chip chip, double *gradient){
 	}
 	
 	// g have the value of the 1% of the chip width
-	g = 0.01 * averageWidth;
+	g = 0.01 * chip.averageWidth;
 
 	// calculate wire length for each net
 	// with log-sum-exp model
@@ -653,9 +660,15 @@ void wGradientX(nodes nodes, nets nets, chip chip, double *gradient){
 		
 		// calculate exponential derivatives and common constant for each node in the net i
 		for(j = 0; j < nets.array[i].netDegree; j++){
-			// find the e^(xk / g) and e^(-xk / g)
-			expDerivativesPos[j] = exp((double) nodes.array[nets.array[i].netNodes[j]].x / g);		
-			expDerivativesNeg[j] = exp((double) -nodes.array[nets.array[i].netNodes[j]].x / g);	
+			if(type == 1){
+				// find the e^(xk / g) and e^(-xk / g)
+				expDerivativesPos[j] = exp((double) nodes.array[nets.array[i].netNodes[j]].xCenter / g);		
+				expDerivativesNeg[j] = exp((double) -nodes.array[nets.array[i].netNodes[j]].xCenter / g);	
+			}else{
+				// find the e^(xk / g) and e^(-xk / g)
+				expDerivativesPos[j] = exp((double) nodes.array[nets.array[i].netNodes[j]].x / g);		
+				expDerivativesNeg[j] = exp((double) -nodes.array[nets.array[i].netNodes[j]].x / g);	
+			}
 			
 			// calculate the denominator of common constant
 			commonPos += expDerivativesPos[j];
@@ -706,7 +719,7 @@ void wGradientY(nodes nodes, nets nets, chip chip, double *gradient){
 	}
 	
 	// g have the value of the 1% of the chip width
-	g = 0.01 * averageWidth;
+	g = 0.01 * chip.averageWidth;
 
 	// calculate wire length for each net
 	// with log-sum-exp model
@@ -720,9 +733,15 @@ void wGradientY(nodes nodes, nets nets, chip chip, double *gradient){
 		
 		// calculate exponential derivatives and common constant for each node in the net i
 		for(j = 0; j < nets.array[i].netDegree; j++){
-			// find the e^(yk / g) and e^(-yk / g)
-			expDerivativesPos[j] = exp((double) nodes.array[nets.array[i].netNodes[j]].y / g);		
-			expDerivativesNeg[j] = exp((double) -nodes.array[nets.array[i].netNodes[j]].y / g);	
+			if(type == 1){
+				// find the e^(yk / g) and e^(-yk / g)
+				expDerivativesPos[j] = exp((double) nodes.array[nets.array[i].netNodes[j]].yCenter / g);		
+				expDerivativesNeg[j] = exp((double) -nodes.array[nets.array[i].netNodes[j]].yCenter / g);	
+			}else{
+				// find the e^(yk / g) and e^(-yk / g)
+				expDerivativesPos[j] = exp((double) nodes.array[nets.array[i].netNodes[j]].y / g);		
+				expDerivativesNeg[j] = exp((double) -nodes.array[nets.array[i].netNodes[j]].y / g);	
+			}
 			
 			// calculate the denominator of common constant
 			commonPos += expDerivativesPos[j];
@@ -759,8 +778,8 @@ void wGradientY(nodes nodes, nets nets, chip chip, double *gradient){
 	return;	// successful return of gradient 
 }
 
-float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax, int totalMovableArea){
-	int i, j, w;	// counters for the loops
+float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax, double totalMovableArea){
+	int i, j, k, w;	// counters for the loops
 	int level;		// counter for the hypergaph levels	
 	hypergraph H;	// hypergraph
 	binGrids B;		// bins
@@ -771,19 +790,13 @@ float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax, int totalMovableA
 	double l;			// l constant	 
 	double *wGXt, *wGYt;// temporary partial derivative vectors of function W
 	double *wGX, *wGY;	// partial derivative vectors of function W
-	double *dGX, *dGY;	// partial derivative vectors of function Db
+	double **dGX, **dGY;// partial derivative vectors of function Db
 	double sN, sD;		// numerator and denominator sum
-	double sum;			// sum to calculate average chip width and overflow ratio
+	double sum;			// sum to calculate overflow ratio
 	double overflow_ratio;	// over flow ratio
-	
-	// calculate average chip width
-	sum = 0.0;
-	for(i = 0; i < chip.numberOfRows; i++){
-		sum += chip.array[i].width;
-	}
-	averageWidth = sum / chip.numberOfRows;
-	//printf("%lf", averageWidth);
-	
+	const double s = 0.25;	// step size for cg algorithm
+	double swb;	// to calculate the final ak for cg algorithm (s * wb)
+
 	// mixed size circuit
 	createH0(&H, nodes.numberOfNodes - nodes.numberOfTerminals);
 	
@@ -793,7 +806,7 @@ float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax, int totalMovableA
 	// initialize level to zero
 	level = 0;
 	
-	// create the hypergraph
+	// creating the hypergraph
 	while(H.array[level].blockNumber > nmax){
 		level++;	// increase the number of levels
 		firstChoiceClustering(&H, level);	// create the new hypergraph level, by dividing the previous level
@@ -809,7 +822,6 @@ float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax, int totalMovableA
 			nodes.array[sortedNodes.array[j]].level = i;
 			//printf("%d %d\n", j, sortedNodes.array[j]);
 		}
-		
 	}
 	
 	/*
@@ -822,7 +834,7 @@ float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax, int totalMovableA
 	*/
 	
 	// find the center of the chip
-	xCenter = (double) averageWidth / 2;
+	xCenter = (double) chip.averageWidth / 2;
 	yCenter = (double) (chip.array[chip.numberOfRows - 1].coordinate + chip.array[chip.numberOfRows - 1].height) / 2;
 	//printf("center: %lf %lf\n", xCenter, yCenter);
 
@@ -902,7 +914,7 @@ float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax, int totalMovableA
 		// calculate Db
 		calculateDb(numberOfBinsHorizontally, numberOfBinsVertically, &B, H, i, nodes, sortedNodes);
 		
-		// create temporary the partial derivative vectors
+		// creating temporary the partial derivative vectors
 		wGXt = malloc(nodes.numberOfNodes * sizeof(double));
 		wGYt = malloc(nodes.numberOfNodes * sizeof(double));
 		
@@ -910,14 +922,14 @@ float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax, int totalMovableA
 		wGradientX(nodes, nets, chip, wGXt);
 		wGradientY(nodes, nets, chip, wGYt);
 		
-		// create the partial derivative vectors
+		// creating the partial derivative vectors
 		wGX = malloc(H.array[i].blockNumber * sizeof(double));
 		wGY = malloc(H.array[i].blockNumber * sizeof(double));
 		
 		// keep only derivatives of Hlevel i
 		for(j = 0; j < H.array[i].blockNumber; j++){
-			wGX[i] = wGXt[sortedNodes.array[H.array[i].range[0] + j]];
-			wGY[i] = wGYt[sortedNodes.array[H.array[i].range[0] + j]];
+			wGX[j] = wGXt[sortedNodes.array[H.array[i].range[0] + j]];
+			wGY[j] = wGYt[sortedNodes.array[H.array[i].range[0] + j]];
 		}
 
 		// we dont need the temporary partial derivatives
@@ -925,25 +937,52 @@ float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax, int totalMovableA
 		free(wGXt);
 		free(wGYt);
 		
-		// create the partial derivative vectors
+		// creating the partial derivative vectors
+		dGX = malloc(numberOfBinsVertically * sizeof(double *));
+		dGY = malloc(numberOfBinsVertically * sizeof(double *));
+		
+		for(j = 0; j < numberOfBinsVertically; j++){
+			dGX[j] = malloc(numberOfBinsHorizontally * sizeof(double));
+			dGY[j] = malloc(numberOfBinsHorizontally * sizeof(double));
+		}
+		
+		// initialize denominator sum
+		sD = 0.0;
+		
+		// calculate the partial derivatives of function Db
+		// and calculate denominator to calculate the l constant
+		for(k = 0; k < H.array[i].blockNumber; k++){
+			// x partial derivative for node k and all bins
+			DbGradientX(numberOfBinsHorizontally, numberOfBinsVertically, &B, H, i, nodes, sortedNodes, k, dGX);
+			
+			// y partial derivative for node k and all bins
+			DbGradientY(numberOfBinsHorizontally, numberOfBinsVertically, &B, H, i, nodes, sortedNodes, k, dGY);
+			
+			for(j = 0; j < numberOfBinsVertically; j++){
+				for(w = 0; w < numberOfBinsHorizontally; w++){
+					// add to the denominator sum, the absolut value of the partial x and y derivative of function Db
+					sD += fabs(dGX[j][w] + dGY[j][w]);
+				}
+			}
+		}
+
+		/*
+		// creating the partial derivative vectors
 		dGX = malloc(H.array[i].blockNumber * sizeof(double));
 		dGY = malloc(H.array[i].blockNumber * sizeof(double));
 		
 		// calculate the partial derivatives of function Db
 		DbGradientX(numberOfBinsHorizontally, numberOfBinsVertically, &B, H, i, nodes, sortedNodes, dGX);
 		DbGradientY(numberOfBinsHorizontally, numberOfBinsVertically, &B, H, i, nodes, sortedNodes, dGY);
-
-		// initialize sums
-		sN = sD = 0.0;
+		*/
 		
-		// calculate numerator and denominator
-		// to calculate the l constant
+		// initialize numerator sum
+		sN = 0.0;
+		
+		// calculate numerator to calculate the l constant
 		for(j = 0; j < H.array[i].blockNumber; j++){
 			// add to the numerator sum, the absolut value of the partial x and y derivative of function W 
 			sN += fabs(wGX[j] + wGY[j]);
-			
-			// add to the denominator sum, the absolut value of the partial x and y derivative of function Db
-			sD += fabs(dGX[j] + dGY[j]);
 		}
 		//printf("%lf / %lf\n", sN, sD);
 		
@@ -960,28 +999,47 @@ float ourPlacerGP(nodes nodes, nets nets, chip chip, int nmax, int totalMovableA
 		free(dGX);
 		free(dGY);
 		
+		// calculate s for our cg
+		swb = s * B.wb;
+		
 		// objective function minimization
 		do{
+			ourCG(W, wGradientX, wGradientY, calculateDb, DbGradientX, DbGradientY, swb, l, numberOfBinsHorizontally, numberOfBinsVertically, B, &nodes, nets, chip, H, i, sortedNodes);	
 		
-		// increase l by two times
-		l *= 2;
-
-		// calculate overflow ratio
-		sum = 0.0;
-		for(j = 0; j < numberOfBinsVertically; j++){
-			for(w = 0; w < numberOfBinsHorizontally; w++){
-				sum += max((B.array[j][w].Db - B.array[j][w].Mb), 0);
+			// increase l by two times
+			l *= 2;
+	
+			// calculate Db(x,y)
+			calculateDb(numberOfBinsHorizontally, numberOfBinsVertically, &B, H, i, nodes, sortedNodes);
+			
+			// calculate overflow ratio
+			sum = 0.0;
+			for(j = 0; j < numberOfBinsVertically; j++){
+				for(w = 0; w < numberOfBinsHorizontally; w++){
+					sum += max((B.array[j][w].Db - B.array[j][w].Mb), 0);
+				}
 			}
-		}
-		
-		overflow_ratio = (double) sum / totalMovableArea;
-		//printf("OR = %lf\n", overflow_ratio);	
-		//getch();	
-		break;
+			
+			overflow_ratio = (double) sum / totalMovableArea;
+			printf("OR = %lf\n", overflow_ratio);	
+			//getch();
+				
+		//break;
 		
 		// until overflow ratio its small enough
 		}while(overflow_ratio > 0.05);
-			
+	
+	/*// just test our cg	
+		printf("\n\nobjF %lf", objF(W, l, calculateDb, numberOfBinsHorizontally, numberOfBinsVertically, B, nodes, nets, chip, H, i, sortedNodes));
+		
+		wGXt = malloc(H.array[i].blockNumber * sizeof(double));
+		wGYt = malloc(H.array[i].blockNumber * sizeof(double));
+		
+		dObjF(wGradientX, wGradientY, DbGradientX, DbGradientY, l, numberOfBinsHorizontally, numberOfBinsVertically, B, nodes, nets, chip, H, i, sortedNodes, wGXt, wGYt);
+		free(wGXt);
+		free(wGYt);
+	*/	
+	
 		//printf("\n%d - %d", H.array[i].range[0], H.array[i].range[1]);
 		if(i != 0){	// if we are not in the last spread (level 0)
 			// decluster nodes from current level (i) to the next level (i-1) 
@@ -1012,7 +1070,6 @@ float ourPlacerGPtest(nodes *nodes, nets nets, chip chip, int nmax){
 	int i, j, n;	// counters for the loops
 	int level;		// counter for the hypergaph levels	
 	hypergraph H;	// hypergraph
-	double sum;		// sum to calculate average chip width
 	connectivitySortedNodes sortedNodes;	// sorted nodes based on their connectivity
 	double *x, *y;	// temporary vectors for x and y coordinates
 	cg_stats Stats;	// cg stats	
@@ -1024,13 +1081,6 @@ float ourPlacerGPtest(nodes *nodes, nets nets, chip chip, int nmax){
 	// start counting the execution clocks of our algorithm
 	clock_t start = clock();
 	
-	// calculate average chip width
-	sum = 0.0;
-	for(i = 0; i < chip.numberOfRows; i++){
-		sum += chip.array[i].width;
-	}
-	averageWidth = sum / chip.numberOfRows;
-	
 	// mixed size circuit
 	createH0(&H, nodes->numberOfNodes - nodes->numberOfTerminals);
 	
@@ -1040,7 +1090,7 @@ float ourPlacerGPtest(nodes *nodes, nets nets, chip chip, int nmax){
 	// initialize level to zero
 	level = 0;
 	
-	// create the hypergraph
+	// creating the hypergraph
 	while(H.array[level].blockNumber > nmax){
 		level++;	// increase the number of levels
 		firstChoiceClustering(&H, level);	// create the new hypergraph level, by dividing the previous level
@@ -1066,8 +1116,8 @@ float ourPlacerGPtest(nodes *nodes, nets nets, chip chip, int nmax){
 		// check x
 		if(nodes->array[i].x < 0.0){
 			nodes->array[i].x = 0.0;
-		}else if(nodes->array[i].x > chip.array[0].width){
-			nodes->array[i].x = chip.array[0].width;
+		}else if(nodes->array[i].x > chip.averageWidth){
+			nodes->array[i].x = chip.averageWidth;
 		}
 		
 		// check y
@@ -1082,13 +1132,13 @@ float ourPlacerGPtest(nodes *nodes, nets nets, chip chip, int nmax){
 	// set the number of nodes
 	n = 2 * (nodes->numberOfNodes - nodes->numberOfTerminals);
 	
-	// create the result array
+	// creating the result array
 	x = malloc(n * sizeof(double));
 
 	// set starting guess 
 	for(i = 0; i < n; i++){
 		if(i < (n / 2)){
-			if((x[i] < 0.0) || (x[i] > chip.array[0].width)){
+			if((x[i] < 0.0) || (x[i] > chip.averageWidth)){
 				x[i] = 0.0;
 				//printf("x out of chip: %lf\n", x[i]);
 			}else{
@@ -1145,7 +1195,7 @@ float ourPlacerGPtest(nodes *nodes, nets nets, chip chip, int nmax){
 		// calculate W
 		WOld = W(*nodes, nets, chip);
 		
-		// create the result array
+		// creating the result array
 		xOld = malloc((nodes->numberOfNodes - nodes->numberOfTerminals) * sizeof(double));
 		yOld = malloc((nodes->numberOfNodes - nodes->numberOfTerminals) * sizeof(double));
 		
@@ -1181,8 +1231,8 @@ float ourPlacerGPtest(nodes *nodes, nets nets, chip chip, int nmax){
 		// check x
 		if(nodes->array[i].x < 0.0){
 			nodes->array[i].x = 0.0;
-		}else if(nodes->array[i].x > chip.array[0].width){
-			nodes->array[i].x = chip.array[0].width;
+		}else if(nodes->array[i].x > chip.averageWidth){
+			nodes->array[i].x = chip.averageWidth;
 		}
 		
 		// check y
@@ -1209,7 +1259,7 @@ double myvalue(nodes *nodes, nets nets, chip chip, double *x, CG_INT n){
 
 	for(i = 0; i < n; i++){
 		if(i < (n / 2)){
-			if((x[i] < 0.0) || (x[i] > chip.array[0].width)){
+			if((x[i] < 0.0) || (x[i] > chip.averageWidth)){
 				//printf("x out of chip: %lf\n", x[i]);
 			}else{
 				nodes->array[i].x = x[i];
@@ -1241,7 +1291,7 @@ void mygrad(nodes *nodes, nets nets, chip chip, double *g, double *x, CG_INT n){
 	
 	for(i = 0; i < n; i++){
 		if(i < (n / 2)){
-			if((x[i] < 0.0) || (x[i] > chip.array[0].width)){
+			if((x[i] < 0.0) || (x[i] > chip.averageWidth)){
 				//printf("x out of chip: %lf\n", x[i]);
 			}else{
 				nodes->array[i].x = x[i];
@@ -1261,7 +1311,7 @@ void mygrad(nodes *nodes, nets nets, chip chip, double *g, double *x, CG_INT n){
 	// calculate the gradient for each y
 	wGradientY(*nodes, nets, chip, gY);
 	
-	// create the complete g vector
+	// creating the complete g vector
 	for(i = 0; i < n; i++){
 		if(i < (n / 2)){
 			g[i] = gX[i];

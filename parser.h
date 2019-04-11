@@ -10,7 +10,7 @@
 #define SUPERBLUE 4
 
 // "useless lines"
-short int UL;
+int UL;
 
 // delimit token
 extern const char space[2];	
@@ -85,6 +85,7 @@ typedef struct chip{
 	row *array;			// array with all chip rows
 	int standardCells;	// 1 if circuit have only standard-size nodes otherwise 0 (mix-size)
 	int pbInChip;		// 1 if there is preplaced nodes in the chip area otherwise 0
+	double averageWidth;// average chip width
 }chip;
 
 // function prototypes
